@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Air Canvas Pro</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #1a1a1a; font-family: sans-serif; }
+        #container { position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        
+        /* Mirror the video and canvas for natural movement */
+        canvas, video { position: absolute; transform: scaleX(-1); border-radius: 10px; }
+        
+        #controls {
+            position: absolute; top: 20px; z-index: 10;
+            display: flex; gap: 15px; background: rgba(255,255,255,0.1);
+            padding: 15px; border-radius: 50px; backdrop-filter: blur(10px);
+        }
+        .btn { width: 40px; height: 40px; border-radius: 50%; cursor: pointer; border: 2px solid white; }
+        #clear { background: white; color: black; border-radius: 20px; width: 80px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="container">
+        <video id="webcam" autoplay playsinline style="display:none;"></video>
+        <canvas id="output_canvas"></canvas>
+        
+        <div id="controls">
+            <div class="btn" style="background: #ff00ff;" onclick="setColor('#ff00ff')"></div>
+            <div class="btn" style="background: #0088ff;" onclick="setColor('#0088ff')"></div>
+            <div class="btn" style="background: #00ff88;" onclick="setColor('#00ff88')"></div>
+            <div id="clear" onclick="clearCanvas()">CLEAR</div>
+        </div>
+    </div>
+
+    <!-- Mediapipe Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+    <script>
+        const video = document.getElementById('webcam');
+        const canvas = document.getElementById('output_canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let drawColor = "#ff00ff";
+        let prevX = null, prevY = null;
+
+        // Create a persistent drawing layer
+        const drawCanvas = document.createElement('canvas');
+        const drawCtx = drawCanvas.getContext('2d');
+
+        function setColor(color) { drawColor = color; }
+        function clearCanvas() { drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height); }
+
+        function onResults(results) {
+            // Set canvas sizes to match video
+            if (canvas.width !== video.videoWidth) {
+                canvas.width = drawCanvas.width = video.videoWidth;
+                canvas.height = drawCanvas.height = video.videoHeight;
+            }
+
+            ctx.save();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 1. Draw the webcam feed
+            ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                for (const landmarks of results.multiHandLandmarks) {
+                    const indexTip = landmarks[8]; // Index finger tip
+                    const middleTip = landmarks[12]; // Middle finger tip
+                    
+                    const x = indexTip.x * canvas.width;
+                    const y = indexTip.y * canvas.height;
+
+                    // GESTURE LOGIC:
+                    // If Index is up but Middle is down = DRAW
+                    // If both are up = HOVER/STOP
+                    const isDrawing = indexTip.y < landmarks[6].y && middleTip.y > landmarks[10].y;
+
+                    if (isDrawing) {
+                        if (prevX !== null) {
+                            drawCtx.beginPath();
+                            drawCtx.strokeStyle = drawColor;
+                            drawCtx.lineWidth = 10;
+                            drawCtx.lineCap = "round";
+                            drawCtx.moveTo(prevX, prevY);
+                            drawCtx.lineTo(x, y);
+                            drawCtx.stroke();
+                        }
+                        prevX = x;
+                        prevY = y;
+                        
+                        // Draw cursor
+                        ctx.beginPath();
+                        ctx.fillStyle = "white";
+                        ctx.arc(x, y, 8, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else {
+                        prevX = null;
+                        prevY = null;
+                    }
+                }
+            }
+            
+            // 2. Overlay the drawing canvas
+            ctx.drawImage(drawCanvas, 0, 0);
+            ctx.restore();
+        }
+
+        const hands = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+
+        hands.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.7,
+            minTrackingConfidence: 0.7
+        });
+
+        hands.onResults(onResults);
+
+        const camera = new Camera(video, {
+            onFrame: async () => { await hands.send({image: video}); },
+            width: 1280,
+            height: 720
+        });
+        camera.start();
+    </script>
+</body>
+</html>
+
