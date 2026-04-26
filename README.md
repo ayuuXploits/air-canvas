@@ -245,14 +245,9 @@ air-canvas/
 ## 📄 License
 
 ```
-MIT License
+Copyright (c) 2026 ayuuXploits
 
-Copyright (c) 2025 ayuuXploits
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software, to deal in the Software without restriction, including the
-rights to use, copy, modify, merge, publish and distribute.'''
----
 
 ## 🙌 Author
 
