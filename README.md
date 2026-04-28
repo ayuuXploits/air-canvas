@@ -96,7 +96,7 @@ python -m SimpleHTTPServer 8080
 Then open your browser at:
 
 ```
-http://localhost:8080/air_canvas_final.html
+http://localhost:8080/air_canvas.html
 ```
 
 ---
@@ -120,7 +120,7 @@ http://localhost:8080
 
 ```bash
 # Install the Live Server extension in VS Code
-# Then right-click air_canvas_final.html → Open with Live Server
+# Then right-click air_canvas.html → Open with Live Server
 # Or use the terminal:
 npx live-server --port=8080
 ```
@@ -131,15 +131,15 @@ npx live-server --port=8080
 
 ```bash
 # Download the app file directly
-curl -L https://raw.githubusercontent.com/ayuuXploits/air-canvas/main/air_canvas_final.html \
-     -o air_canvas_final.html
+curl -L https://raw.githubusercontent.com/ayuuXploits/air-canvas/main/air_canvas.html \
+     -o air_canvas.html
 
 # Download the README
 curl -L https://raw.githubusercontent.com/ayuuXploits/air-canvas/main/README.md \
      -o README.md
 
 # Download both in one go
-curl -L https://raw.githubusercontent.com/ayuuXploits/air-canvas/main/air_canvas_final.html -o air_canvas_final.html && \
+curl -L https://raw.githubusercontent.com/ayuuXploits/air-canvas/main/air_canvas.html -o air_canvas.html && \
 curl -L https://raw.githubusercontent.com/ayuuXploits/air-canvas/main/README.md -o README.md
 ```
 
@@ -165,7 +165,7 @@ git push -u origin main
 If you're updating an existing repo:
 
 ```bash
-git add air_canvas_final.html README.md
+git add air_canvas.html README.md
 git commit -m "fix: correct left/right hand detection with mirror mode"
 git push
 ```
@@ -189,7 +189,7 @@ gh api repos/ayuuXploits/air-canvas/pages \
 
 Your app will be live at:
 ```
-https://ayuuXploits.github.io/air-canvas/air_canvas_final.html
+https://ayuuXploits.github.io/air-canvas/air_canvas.html
 ```
 
 ---
@@ -214,7 +214,7 @@ No build tools. No frameworks. No dependencies to install. One `.html` file.
 ```
 air-canvas/
 │
-├── air_canvas_final.html     # Main application (single file)
+├── air_canvas.html           # Main application (single file)
 └── README.md                 # This file
 ```
 
