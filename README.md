@@ -72,13 +72,13 @@ git clone https://github.com/ayuuXploits/air-canvas.git
 cd air-canvas
 
 # Open in your default browser (Linux)
-xdg-open air_canvas_final.html
+xdg-open air_canvas.html
 
 # Open in your default browser (macOS)
-open air_canvas_final.html
+open air_canvas.html
 
 # Open in your default browser (Windows)
-start air_canvas_final.html
+start air_canvas.html
 ```
 
 ---
