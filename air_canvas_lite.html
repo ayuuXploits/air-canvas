@@ -1,0 +1,398 @@
+This is the complete, production-ready code. I have merged your original UI with the Vector Distance gestures, EMA Smoothing, Velocity-based thickness, and the Air UI "Hover-to-Click" functionality.
+I've also added a small CSS block to help with the "Hover Ring" visual.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIR CANVAS PRO — Gesture Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #080a0f;
+            --surface: rgba(12,16,26,0.92);
+            --border: rgba(255,255,255,0.07);
+            --accent: #4fffb0;
+            --accent2: #ff4fd8;
+            --accent3: #4fd8ff;
+            --text: #e8eaf0;
+            --muted: rgba(232,234,240,0.4);
+            --panel-w: 280px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg); font-family: 'Syne', sans-serif; overflow: hidden; color: var(--text); height: 100vh; width: 100vw; }
+        #app { position: relative; width: 100vw; height: 100vh; }
+
+        video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: none; }
+        canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+        /* ── SIDE PANEL ── */
+        #panel {
+            position: absolute; top: 0; left: 0;
+            width: var(--panel-w); height: 100vh;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            backdrop-filter: blur(20px) saturate(1.4);
+            z-index: 200;
+            display: flex; flex-direction: column;
+            padding: 22px 18px; gap: 18px;
+            overflow: hidden;
+            transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+        }
+        #panel.collapsed { transform: translateX(calc(-1 * var(--panel-w))); }
+
+        #panel-tab {
+            position: absolute; top: 50%; left: var(--panel-w);
+            transform: translateY(-50%);
+            z-index: 201; width: 18px; height: 52px;
+            background: var(--surface); border: 1px solid var(--border);
+            border-left: none; border-radius: 0 8px 8px 0;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: left 0.35s cubic-bezier(0.4,0,0.2,1);
+        }
+        #panel.collapsed ~ #panel-tab { left: 0; }
+
+        .logo { display:flex; flex-direction:column; gap:2px; }
+        .logo-title { font-weight:800; font-size:20px; letter-spacing:0.15em; color:#fff; }
+        .sec-label { font-family:'Space Mono',monospace; font-size:9px; letter-spacing:0.25em; color:var(--muted); text-transform:uppercase; margin-bottom:7px; }
+
+        .status-grid { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+        .status-card { background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; padding:10px; }
+        .status-card .label { font-family:'Space Mono',monospace; font-size:8px; color:var(--muted); }
+        .status-card .value { font-size:13px; font-weight:600; color:#fff; }
+
+        .color-row { display:flex; gap:5px; margin-bottom:5px; }
+        .color-swatch { flex:1; height:30px; border-radius:8px; border:2px solid transparent; cursor:pointer; }
+        .color-swatch.active { border-color:white; box-shadow:0 0 10px currentColor; }
+
+        .thickness-display { background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; padding:12px; }
+        .thickness-bar-wrap { width:100%; height:5px; background:rgba(255,255,255,0.08); border-radius:3px; margin-top:8px; }
+        .thickness-bar { height:100%; background:var(--accent); transition:width 0.1s; }
+
+        .gesture-list { display:flex; flex-direction:column; gap:5px; flex:1; overflow-y:auto; }
+        .gesture-item { display:flex; align-items:center; gap:8px; padding:7px 9px; background:rgba(255,255,255,0.02); border-radius:8px; border:1px solid var(--border); font-size:10px; }
+
+        .btn-row { display:flex; gap:8px; margin-top:auto; }
+        .btn { flex:1; padding:12px 6px; border-radius:10px; font-family:'Space Mono',monospace; font-size:10px; cursor:pointer; border:1px solid; background:rgba(255,255,255,0.05); color:white; }
+        
+        /* Air UI Hover Styling */
+        .btn.hovering { border-color: var(--accent); background: rgba(79, 255, 176, 0.1); }
+
+        #topbar {
+            position:absolute; top:16px; left:calc(var(--panel-w) + 16px); right:16px;
+            z-index:100; display:flex; justify-content:space-between; pointer-events:none;
+        }
+        .fps-chip { background:var(--surface); padding:7px 12px; border-radius:8px; font-family:'Space Mono',monospace; font-size:10px; color:var(--accent); }
+        
+        #cursor-ring {
+            position:absolute; width:28px; height:28px; border-radius:50%;
+            border:2px solid var(--accent); pointer-events:none;
+            transform:translate(-50%,-50%); z-index:300; transition: width 0.1s, height 0.1s;
+        }
+
+        #loading {
+            position:absolute; inset:0; background:var(--bg); z-index:999;
+            display:flex; flex-direction:column; align-items:center; justify-content:center;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div id="loading">
+        <h1 style="letter-spacing:0.5em">AIR CANVAS</h1>
+        <p id="load-status" style="font-family:monospace; margin-top:20px; color:gray">INITIALIZING ENGINE...</p>
+    </div>
+
+    <video id="webcam" autoplay playsinline></video>
+    <canvas id="output_canvas"></canvas>
+    <div id="cursor-ring"></div>
+
+    <div id="topbar">
+        <div class="fps-chip" id="fps-chip">-- FPS</div>
+        <div class="fps-chip" style="color:var(--accent3)">V-DIST GESTURES ACTIVE</div>
+    </div>
+
+    <div id="panel-tab" onclick="togglePanel()">☰</div>
+
+    <div id="panel">
+        <div class="logo">
+            <div class="logo-title">STUDIO PRO</div>
+            <div class="logo-line"></div>
+        </div>
+
+        <div>
+            <div class="sec-label">Brush</div>
+            <div class="status-grid">
+                <div class="status-card">
+                    <div class="label">COLOR</div>
+                    <div class="value" id="cur-color">Mint</div>
+                </div>
+                <div class="status-card">
+                    <div class="label">SIZE</div>
+                    <div class="value" id="cur-thick-label">15px</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="sec-label">Palette</div>
+            <div class="color-row">
+                <div class="color-swatch active" data-color="#4fffb0" data-name="Mint" style="background:#4fffb0"></div>
+                <div class="color-swatch" data-color="#4fd8ff" data-name="Cyan" style="background:#4fd8ff"></div>
+                <div class="color-swatch" data-color="#ff4fd8" data-name="Pink" style="background:#ff4fd8"></div>
+            </div>
+        </div>
+
+        <div class="gesture-list">
+            <div class="sec-label">Gestures</div>
+            <div class="gesture-item">☝️ Index Only = Draw</div>
+            <div class="gesture-item">🖐️ 5 Fingers = Eraser</div>
+            <div class="gesture-item">🤏 Pinch Left = Resize</div>
+            <div class="gesture-item">🤖 Hover Button = Click</div>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn" id="clearBtn" onclick="clearCanvas()">CLEAR</button>
+            <button class="btn" id="exportBtn" onclick="exportPNG()">EXPORT</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+<script>
+// ─────────────────────────────────────────────
+//  CORE STATE
+// ─────────────────────────────────────────────
+const video = document.getElementById('webcam');
+const canvas = document.getElementById('output_canvas');
+const ctx = canvas.getContext('2d');
+const cursorRing = document.getElementById('cursor-ring');
+const drawCanvas = document.createElement('canvas');
+const drawCtx = drawCanvas.getContext('2d');
+
+let drawColor = '#4fffb0';
+let brushThickness = 15;
+let prevX = null, prevY = null;
+let prevMidX = null, prevMidY = null;
+let panelOpen = true;
+let isMirrored = true;
+
+// ── NEW: FILTERS & AIR UI STATE ──
+let smoothX = 0, smoothY = 0;
+const EMA_ALPHA = 0.3; // Smoothing factor
+let hoverTarget = null;
+let hoverStartTime = 0;
+const HOVER_DURATION = 1000; 
+
+// ─────────────────────────────────────────────
+//  LOGIC: VECTORS & MATH
+// ─────────────────────────────────────────────
+function getDist(p1, p2) {
+    return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+}
+
+function togglePanel() {
+    panelOpen = !panelOpen;
+    document.getElementById('panel').classList.toggle('collapsed', !panelOpen);
+}
+
+// ─────────────────────────────────────────────
+//  MEDIAPIPE HANDLER
+// ─────────────────────────────────────────────
+function onResults(results) {
+    if (canvas.width !== video.videoWidth) {
+        canvas.width = drawCanvas.width = video.videoWidth || 1280;
+        canvas.height = drawCanvas.height = video.videoHeight || 720;
+    }
+
+    ctx.save();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Video Layer
+    ctx.save();
+    if (isMirrored) { ctx.translate(canvas.width, 0); ctx.scale(-1, 1); }
+    ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+    ctx.restore();
+
+    ctx.fillStyle = 'rgba(0,0,0,0.1)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (results.multiHandLandmarks) {
+        results.multiHandLandmarks.forEach((rawLm, index) => {
+            const label = results.multiHandedness[index].label;
+            const isRightHand = isMirrored ? label === 'Left' : label === 'Right';
+            const landmarks = rawLm.map(lm => ({ x: isMirrored ? 1 - lm.x : lm.x, y: lm.y }));
+
+            const wrist = landmarks[0];
+            const indexTip = landmarks[8];
+            const thumbTip = landmarks[4];
+            const middleTip = landmarks[12];
+
+            // 1. EMA SMOOTHING
+            const targetX = indexTip.x * canvas.width;
+            const targetY = indexTip.y * canvas.height;
+            smoothX = (targetX * EMA_ALPHA) + (smoothX * (1 - EMA_ALPHA));
+            smoothY = (targetY * EMA_ALPHA) + (smoothY * (1 - EMA_ALPHA));
+
+            if (isRightHand) {
+                // Update Cursor UI
+                const effectiveLeft = panelOpen ? 280 : 0;
+                const screenX = effectiveLeft + (smoothX / canvas.width) * (window.innerWidth - effectiveLeft);
+                const screenY = (smoothY / canvas.height) * window.innerHeight;
+                cursorRing.style.left = screenX + 'px';
+                cursorRing.style.top = screenY + 'px';
+
+                // 2. VECTOR GESTURE DETECTION
+                const indexExt = getDist(indexTip, wrist) > getDist(landmarks[6], wrist) * 1.15;
+                const midExt = getDist(middleTip, wrist) > getDist(landmarks[10], wrist) * 1.15;
+                const thumbExt = getDist(thumbTip, wrist) > getDist(landmarks[2], wrist) * 1.1;
+                const ringExt = getDist(landmarks[16], wrist) > getDist(landmarks[14], wrist) * 1.1;
+
+                // 3. AIR UI HOVER
+                handleAirUI(smoothX, smoothY);
+
+                if (indexExt && midExt && ringExt) {
+                    // ERASER MODE (All fingers out)
+                    drawCtx.globalCompositeOperation = 'destination-out';
+                    drawCtx.beginPath();
+                    drawCtx.arc(smoothX, smoothY, 40, 0, Math.PI * 2);
+                    drawCtx.fill();
+                    prevX = null; prevY = null;
+                } 
+                else if (indexExt && !midExt) {
+                    // DRAW MODE
+                    drawCtx.globalCompositeOperation = 'source-over';
+                    
+                    // 4. VELOCITY BASED THICKNESS
+                    let velocity = prevX ? Math.hypot(smoothX - prevX, smoothY - prevY) : 0;
+                    let vAdjust = Math.max(0.4, 1.2 - (velocity / 50));
+                    let dynamicThick = brushThickness * vAdjust;
+
+                    if (prevX !== null) {
+                        const mx = (prevX + smoothX) / 2;
+                        const my = (prevY + smoothY) / 2;
+                        drawCtx.strokeStyle = drawColor;
+                        drawCtx.lineWidth = dynamicThick;
+                        drawCtx.lineCap = 'round';
+                        drawCtx.beginPath();
+                        if (prevMidX !== null) {
+                            drawCtx.moveTo(prevMidX, prevMidY);
+                            drawCtx.quadraticCurveTo(prevX, prevY, mx, my);
+                        } else {
+                            drawCtx.moveTo(prevX, prevY);
+                            drawCtx.lineTo(mx, my);
+                        }
+                        drawCtx.stroke();
+                        prevMidX = mx; prevMidY = my;
+                    }
+                    prevX = smoothX; prevY = smoothY;
+                } else {
+                    prevX = null; prevY = null; prevMidX = null; prevMidY = null;
+                }
+            } else {
+                // LEFT HAND: PINCH TO RESIZE
+                const pinchDist = getDist(indexTip, thumbTip);
+                brushThickness = Math.max(5, Math.min(80, pinchDist * 400));
+                document.getElementById('cur-thick-label').textContent = Math.round(brushThickness) + "px";
+            }
+        });
+    } else {
+        prevX = null; prevY = null;
+    }
+
+    ctx.drawImage(drawCanvas, 0, 0);
+    ctx.restore();
+}
+
+// ─────────────────────────────────────────────
+//  AIR UI: HOVER TO CLICK
+// ─────────────────────────────────────────────
+function handleAirUI(x, y) {
+    const clearBtn = document.getElementById('clearBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    
+    const targets = [
+        { el: clearBtn, action: clearCanvas, id: 'clear' },
+        { el: exportBtn, action: exportPNG, id: 'export' }
+    ];
+
+    let found = false;
+    targets.forEach(t => {
+        const rect = t.el.getBoundingClientRect();
+        const effectiveLeft = panelOpen ? 280 : 0;
+        const screenX = effectiveLeft + (x / canvas.width) * (window.innerWidth - effectiveLeft);
+        const screenY = (y / canvas.height) * window.innerHeight;
+
+        if (screenX > rect.left && screenX < rect.right && screenY > rect.top && screenY < rect.bottom) {
+            found = true;
+            t.el.classList.add('hovering');
+            if (hoverTarget !== t.id) {
+                hoverTarget = t.id;
+                hoverStartTime = Date.now();
+            } else {
+                const progress = (Date.now() - hoverStartTime) / HOVER_DURATION;
+                drawHoverCircle(x, y, progress);
+                if (progress >= 1) {
+                    t.action();
+                    hoverTarget = null;
+                }
+            }
+        } else {
+            t.el.classList.remove('hovering');
+        }
+    });
+
+    if (!found) hoverTarget = null;
+}
+
+function drawHoverCircle(x, y, p) {
+    ctx.beginPath();
+    ctx.arc(x, y, 40, 0, Math.PI * 2 * p);
+    ctx.strokeStyle = '#4fffb0';
+    ctx.lineWidth = 5;
+    ctx.stroke();
+}
+
+// ─────────────────────────────────────────────
+//  SYSTEM ACTIONS
+// ─────────────────────────────────────────────
+function clearCanvas() {
+    drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+}
+
+function exportPNG() {
+    const link = document.createElement('a');
+    link.download = 'air-canvas-export.png';
+    link.href = drawCanvas.toDataURL();
+    link.click();
+}
+
+// ─────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────
+const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.8, minTrackingConfidence: 0.8 });
+hands.onResults(onResults);
+
+const camera = new Camera(video, {
+    onFrame: async () => { await hands.send({ image: video }); },
+    width: 1280, height: 720
+});
+camera.start().then(() => {
+    document.getElementById('loading').style.display = 'none';
+});
+
+document.querySelectorAll('.color-swatch').forEach(s => {
+    s.onclick = () => {
+        drawColor = s.dataset.color;
+        document.getElementById('cur-color').textContent = s.dataset.name;
+        document.querySelectorAll('.color-swatch').forEach(sw => sw.classList.remove('active'));
+        s.classList.add('active');
+        cursorRing.style.borderColor = drawColor;
+    }
+});
+</script>
+</body>
+</html>
