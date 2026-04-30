@@ -144,7 +144,8 @@
         <div class="gesture-list">
             <div class="sec-label">Gestures</div>
             <div class="gesture-item">☝️ Index Only = Draw</div>
-            <div class="gesture-item">🖐️ 5 Fingers = Eraser</div>
+            <div class="gesture-item">🖐️ 3 Fingers = Pan/Move</div>
+            <div class="gesture-item">✋ 5 Fingers = Eraser</div>
             <div class="gesture-item">🤏 Pinch Left = Resize</div>
             <div class="gesture-item">🤖 Hover Button = Click</div>
         </div>
@@ -183,6 +184,11 @@ const EMA_ALPHA = 0.3; // Smoothing factor
 let hoverTarget = null;
 let hoverStartTime = 0;
 const HOVER_DURATION = 1000; 
+
+// ── NEW: PANNING STATE ──
+let offsetX = 0, offsetY = 0;
+let isPanning = false;
+let startPanX = 0, startPanY = 0;
 
 // ─────────────────────────────────────────────
 //  LOGIC: VECTORS & MATH
@@ -227,6 +233,7 @@ function onResults(results) {
             const indexTip = landmarks[8];
             const thumbTip = landmarks[4];
             const middleTip = landmarks[12];
+            const ringTip = landmarks[16];
 
             // 1. EMA SMOOTHING
             const targetX = indexTip.x * canvas.width;
@@ -245,32 +252,54 @@ function onResults(results) {
                 // 2. VECTOR GESTURE DETECTION
                 const indexExt = getDist(indexTip, wrist) > getDist(landmarks[6], wrist) * 1.15;
                 const midExt = getDist(middleTip, wrist) > getDist(landmarks[10], wrist) * 1.15;
+                const ringExt = getDist(ringTip, wrist) > getDist(landmarks[14], wrist) * 1.15;
                 const thumbExt = getDist(thumbTip, wrist) > getDist(landmarks[2], wrist) * 1.1;
-                const ringExt = getDist(landmarks[16], wrist) > getDist(landmarks[14], wrist) * 1.1;
+                const pinkyExt = getDist(landmarks[20], wrist) > getDist(landmarks[18], wrist) * 1.1;
 
                 // 3. AIR UI HOVER
                 handleAirUI(smoothX, smoothY);
 
-                if (indexExt && midExt && ringExt) {
+                // --- PAN/MOVE LOGIC (3 Fingers) ---
+                if (indexExt && midExt && ringExt && !pinkyExt) {
+                    cursorRing.style.borderColor = "#ffdd4f"; // Yellow for move
+                    if (!isPanning) {
+                        isPanning = true;
+                        startPanX = smoothX - offsetX;
+                        startPanY = smoothY - offsetY;
+                    }
+                    offsetX = smoothX - startPanX;
+                    offsetY = smoothY - startPanY;
+                    prevX = null; prevY = null;
+                } 
+                else if (indexExt && midExt && ringExt && pinkyExt) {
                     // ERASER MODE (All fingers out)
+                    isPanning = false;
+                    cursorRing.style.borderColor = "#ff4fd8";
                     drawCtx.globalCompositeOperation = 'destination-out';
                     drawCtx.beginPath();
-                    drawCtx.arc(smoothX, smoothY, 40, 0, Math.PI * 2);
+                    // Adjusted for current offset
+                    drawCtx.arc(smoothX - offsetX, smoothY - offsetY, 40, 0, Math.PI * 2);
                     drawCtx.fill();
                     prevX = null; prevY = null;
                 } 
                 else if (indexExt && !midExt) {
                     // DRAW MODE
+                    isPanning = false;
+                    cursorRing.style.borderColor = drawColor;
                     drawCtx.globalCompositeOperation = 'source-over';
                     
                     // 4. VELOCITY BASED THICKNESS
-                    let velocity = prevX ? Math.hypot(smoothX - prevX, smoothY - prevY) : 0;
+                    let velocity = prevX ? Math.hypot((smoothX - offsetX) - prevX, (smoothY - offsetY) - prevY) : 0;
                     let vAdjust = Math.max(0.4, 1.2 - (velocity / 50));
                     let dynamicThick = brushThickness * vAdjust;
 
+                    // Coordinates adjusted for canvas movement
+                    const adjX = smoothX - offsetX;
+                    const adjY = smoothY - offsetY;
+
                     if (prevX !== null) {
-                        const mx = (prevX + smoothX) / 2;
-                        const my = (prevY + smoothY) / 2;
+                        const mx = (prevX + adjX) / 2;
+                        const my = (prevY + adjY) / 2;
                         drawCtx.strokeStyle = drawColor;
                         drawCtx.lineWidth = dynamicThick;
                         drawCtx.lineCap = 'round';
@@ -280,14 +309,16 @@ function onResults(results) {
                             drawCtx.quadraticCurveTo(prevX, prevY, mx, my);
                         } else {
                             drawCtx.moveTo(prevX, prevY);
-                            drawCtx.lineTo(mx, my);
+                            drawCtx.lineTo(adjX, adjY);
                         }
                         drawCtx.stroke();
                         prevMidX = mx; prevMidY = my;
                     }
-                    prevX = smoothX; prevY = smoothY;
+                    prevX = adjX; prevY = adjY;
                 } else {
                     prevX = null; prevY = null; prevMidX = null; prevMidY = null;
+                    isPanning = false;
+                    cursorRing.style.borderColor = drawColor;
                 }
             } else {
                 // LEFT HAND: PINCH TO RESIZE
@@ -298,9 +329,15 @@ function onResults(results) {
         });
     } else {
         prevX = null; prevY = null;
+        isPanning = false;
     }
 
+    // --- APPLY PANNING OFFSET TO VIEW ---
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
     ctx.drawImage(drawCanvas, 0, 0);
+    ctx.restore();
+
     ctx.restore();
 }
 
@@ -358,12 +395,23 @@ function drawHoverCircle(x, y, p) {
 // ─────────────────────────────────────────────
 function clearCanvas() {
     drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+    // Reset offset on clear
+    offsetX = 0;
+    offsetY = 0;
 }
 
 function exportPNG() {
+    // We create a temporary canvas to export the drawing as it currently looks (with offset)
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = canvas.width;
+    exportCanvas.height = canvas.height;
+    const expCtx = exportCanvas.getContext('2d');
+    expCtx.translate(offsetX, offsetY);
+    expCtx.drawImage(drawCanvas, 0, 0);
+
     const link = document.createElement('a');
     link.download = 'air-canvas-export.png';
-    link.href = drawCanvas.toDataURL();
+    link.href = exportCanvas.toDataURL();
     link.click();
 }
 
