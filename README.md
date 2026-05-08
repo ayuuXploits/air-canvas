@@ -213,9 +213,9 @@ No build tools. No frameworks. No dependencies to install. One `.html` file.
 
 ```
 air-canvas/
-│
-├── air_canvas.html           # Main application (single file)
 └── README.md                 # This file
+├── air_canvas.html           # Main application (single file)
+└── air_canvas_lite.html      # lite/ mini version of main application
 ```
 
 ---
