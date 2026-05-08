@@ -56,7 +56,7 @@
 
 ### Option 1 — Open directly in browser
 
-Just double-click `air_canvas_final.html` or drag it into any Chromium-based browser.
+Just double-click `air_canvas.html` or drag it into any Chromium-based browser.
 
 > ⚠️ **Requires a webcam and camera permission.** Works best in Chrome or Edge.
 
@@ -66,7 +66,7 @@ Just double-click `air_canvas_final.html` or drag it into any Chromium-based bro
 
 ```bash
 # Clone the repository
-git clone https://github.com/ayuuXploits/air-canvas.git
+git clone https://github.com/ayuuXploits/air_canvas.html.git
 
 # Navigate into the project
 cd air-canvas
