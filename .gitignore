@@ -1,0 +1,23 @@
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Air Canvas Specifics
+# Ignores any exported drawings you save to the project folder
+*.png
+*.jpg
+*.jpeg
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
