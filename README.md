@@ -1,4 +1,6 @@
 # ✋ Air Canvas — Gesture Drawing Studio
+![Main Header](./docs/air_canvas1.png)
+
 
 > Draw in the air using just your hands. No touch, no mouse — pure computer vision.
 ---
