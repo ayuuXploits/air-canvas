@@ -133,6 +133,7 @@ npx live-server --port=8080
 ## 📥 Download via curl
 
 ```bash
+
 # Download the app file directly
 curl -L https://raw.githubusercontent.com/ayuuXploits/air-canvas/main/air_canvas.html \
      -o air_canvas.html
