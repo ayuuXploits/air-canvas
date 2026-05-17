@@ -1,13 +1,40 @@
 # ✋ Air Canvas — Gesture Drawing Studio
+
+[![MediaPipe](https://img.shields.io/badge/MediaPipe-Hands-00C853?style=for-the-badge&logo=google&logoColor=white)](https://developers.google.com/mediapipe)
+[![JavaScript](https://img.shields.io/badge/JavaScript-Vanilla%20ES6-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+[![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-red.svg?style=for-the-badge)](#-license)
+[![Platform](https://img.shields.io/badge/Platform-Chrome%20%7C%20Edge%20%7C%20Brave-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://www.google.com/chrome/)
+[![No Dependencies](https://img.shields.io/badge/Dependencies-Zero-brightgreen?style=for-the-badge)](https://github.com/ayuuXploits/air-canvas)
+
+> Draw in the air using just your hands. No touch, no mouse — pure computer vision.
+
 ![Main Header](./docs/air_canvas2.png)
 ![Main Header](./docs/air_canvas1.png)
 
-> Draw in the air using just your hands. No touch, no mouse — pure computer vision.
+---
+
+## 📋 Table of Contents
+
+- [Overview](#-overview)
+- [Features](#-features)
+- [Gesture Reference](#-gesture-reference)
+- [Shape Mode](#-shape-mode)
+- [Move Mode](#-move-mode)
+- [Quick Start](#-quick-start)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Troubleshooting](#-troubleshooting)
+- [Contributing](#-contributing)
+- [License](#-license)
+- [Author](#-author)
+
 ---
 
 ## 📸 Overview
 
-**Air Canvas** is a browser-based gesture drawing application that uses your webcam and Google's MediaPipe Hands to track your hand movements in real time. Draw, erase, switch colors, control brush thickness, drop shapes, and move objects — all without touching a screen.
+**Air Canvas** is a browser-based gesture drawing application that uses your webcam and Google's MediaPipe Hands to track your hand movements in real time. Draw freehand strokes, drop precise shapes, move objects around the canvas, and control colors and brush thickness — all without touching a screen.
+
+One `.html` file. No install. No frameworks. Just open and draw.
 
 ---
 
@@ -19,7 +46,7 @@
 | 🔲 Shape Mode | Draw precise lines, rectangles, and ellipses with a two-gesture commit flow |
 | ✋ Move Mode | Grab any stroke or shape with a closed fist and drag it anywhere on the canvas |
 | 🎨 Color Control | Use your left hand finger count to switch between 5 colors with a flash overlay |
-| 🗑️ Eraser Mode | Spread all 5 fingers on the right hand (or enable via panel) to erase objects |
+| 🗑️ Eraser Mode | Spread all 5 fingers on the right hand or enable via panel to erase objects |
 | 📏 Brush Thickness | Pinch left hand to adjust stroke width in real time with smooth interpolation |
 | ↩️ Undo | Ctrl+Z or panel button — up to 30 levels of deep-copy object history |
 | ✊ Clear | Make a fist with your left hand and hold for 0.6 s to clear the canvas |
@@ -62,7 +89,7 @@
 
 ## 🔲 Shape Mode
 
-Switch to **Shape** mode in the panel, then choose **Line**, **Rect**, or **Circle**:
+Switch to **Shape** mode in the side panel, then choose **Line**, **Rect**, or **Circle**:
 
 1. **Index finger only** → sets the start point (shown as a glowing dot)
 2. **Move** your index finger to preview the shape live (dashed outline)
@@ -74,7 +101,7 @@ Shapes are stored as objects and can be moved, undone, and erased just like stro
 
 ## ✋ Move Mode
 
-Switch to **Move** mode in the panel:
+Switch to **Move** mode in the side panel:
 
 1. Position your right hand over any stroke or shape
 2. **Close your fist** — a gold arc ring charges around your cursor
@@ -154,14 +181,14 @@ http://localhost:8080
 
 ```bash
 # Install the Live Server extension in VS Code
-# Then right-click air_canvas.html → Open with Live Server
-# Or use the terminal:
+# Right-click air_canvas.html → Open with Live Server
+# Or via terminal:
 npx live-server --port=8080
 ```
 
 ---
 
-## 📥 Download via curl
+### Option 6 — Download via curl
 
 ```bash
 # Download the app file directly
@@ -179,55 +206,6 @@ curl -L https://raw.githubusercontent.com/ayuuXploits/air-canvas/main/README.md 
 
 ---
 
-## 📤 Push to GitHub
-
-```bash
-# Initialize a new repo (if not already)
-git init
-git remote add origin https://github.com/ayuuXploits/air-canvas.git
-
-# Stage all files
-git add .
-
-# Commit
-git commit -m "feat: initial release of Air Canvas gesture drawing studio"
-
-# Push to main branch
-git push -u origin main
-```
-
-If you're updating an existing repo:
-
-```bash
-git add air_canvas.html README.md
-git commit -m "fix: correct left/right hand detection with mirror mode"
-git push
-```
-
----
-
-## 🌐 Deploy to GitHub Pages
-
-```bash
-# Make sure your repo is public on GitHub, then:
-# Go to Settings → Pages → Source → Deploy from branch → main → / (root)
-
-# Or use the GitHub CLI
-gh repo create ayuuXploits/air-canvas --public --source=. --remote=origin --push
-
-# Enable Pages via CLI
-gh api repos/ayuuXploits/air-canvas/pages \
-  --method POST \
-  --field source='{"branch":"main","path":"/"}'
-```
-
-Your app will be live at:
-```
-https://ayuuXploits.github.io/air-canvas/air_canvas.html
-```
-
----
-
 ## 🧱 Tech Stack
 
 | Technology | Purpose |
@@ -238,8 +216,6 @@ https://ayuuXploits.github.io/air-canvas/air_canvas.html
 | [MediaPipe Hands](https://developers.google.com/mediapipe/solutions/vision/hand_landmarker) | Real-time 21-point hand landmark detection |
 | MediaPipe Camera Utils | Webcam frame capture pipeline |
 | Google Fonts — Syne + Space Mono | Typography |
-
-No build tools. No frameworks. No dependencies to install. One `.html` file.
 
 ---
 
@@ -257,9 +233,9 @@ air-canvas/
 ## 🔧 Troubleshooting
 
 **Camera not working?**
-- Make sure you have allowed camera permissions in your browser
-- Try opening in Chrome or Edge (Firefox has limited MediaPipe support)
-- If on `file://`, switch to `localhost` using any server method above
+- Allow camera permissions in your browser settings
+- Use Chrome or Edge — Firefox has limited MediaPipe support
+- If running on `file://`, switch to `localhost` using any server method above
 
 **Hands not detected?**
 - Ensure good lighting — avoid strong backlight
@@ -267,18 +243,30 @@ air-canvas/
 - Stay 40–80 cm from the camera for best accuracy
 
 **Move mode not grabbing?**
-- Make sure you are in **Move** mode (panel button)
+- Confirm you are in **Move** mode via the panel button
 - Close your fist fully and hold still — wait for the gold arc to complete
 - Hover directly over a drawn stroke or shape, not empty canvas
-- Try adjusting room lighting; fist detection needs clear finger landmarks
+- Improve room lighting; fist detection needs clear finger landmarks
 
 **Laggy drawing?**
 - Close other browser tabs to free up CPU
-- Lower your browser zoom to 100%
-- Check FPS indicator in the top-right corner — below 15 FPS will cause gaps
+- Set browser zoom to 100%
+- Check the FPS indicator — below 15 FPS will cause visible gaps in strokes
 
 **Left/right hand reversed?**
-- Click the `⟺ MIRROR` toggle in the top bar — this corrects hand labelling
+- Click the `⟺ MIRROR` toggle in the top bar to correct hand labelling
+
+---
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome!
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ---
 
@@ -286,6 +274,7 @@ air-canvas/
 
 ```
 Copyright (c) 2026 ayuuXploits
+All Rights Reserved.
 ```
 
 ---
@@ -294,3 +283,7 @@ Copyright (c) 2026 ayuuXploits
 
 **ayuuXploits**
 - GitHub: [@ayuuXploits](https://github.com/ayuuXploits)
+
+---
+
+> *Built with 🖐️ and computer vision. No stylus required.*
