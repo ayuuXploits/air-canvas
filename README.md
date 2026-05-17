@@ -7,7 +7,7 @@
 
 ## 📸 Overview
 
-**Air Canvas** is a browser-based gesture drawing application that uses your webcam and Google's MediaPipe Hands to track your hand movements in real time. Draw, erase, switch colors, and control brush thickness — all without touching a screen.
+**Air Canvas** is a browser-based gesture drawing application that uses your webcam and Google's MediaPipe Hands to track your hand movements in real time. Draw, erase, switch colors, control brush thickness, drop shapes, and move objects — all without touching a screen.
 
 ---
 
@@ -15,30 +15,36 @@
 
 | Feature | Description |
 |---|---|
-| ✏️ Gesture Drawing | Point your right index finger to draw on the canvas |
-| 🎨 Color Control | Use your left hand finger count to switch between 5 colors |
-| 🖐️ Eraser Mode | Spread all 5 fingers on the right hand to erase locally |
-| 📏 Brush Thickness | Pinch left hand to adjust stroke width in real time |
-| ↩️ Undo | Ctrl+Z or panel button — up to 20 levels of history |
-| ✊ Clear | Make a fist with your left hand to clear the canvas |
+| ✏️ Freehand Drawing | Point your right index finger to draw smooth quadratic-curve strokes |
+| 🔲 Shape Mode | Draw precise lines, rectangles, and ellipses with a two-gesture commit flow |
+| ✋ Move Mode | Grab any stroke or shape with a closed fist and drag it anywhere on the canvas |
+| 🎨 Color Control | Use your left hand finger count to switch between 5 colors with a flash overlay |
+| 🗑️ Eraser Mode | Spread all 5 fingers on the right hand (or enable via panel) to erase objects |
+| 📏 Brush Thickness | Pinch left hand to adjust stroke width in real time with smooth interpolation |
+| ↩️ Undo | Ctrl+Z or panel button — up to 30 levels of deep-copy object history |
+| ✊ Clear | Make a fist with your left hand and hold for 0.6 s to clear the canvas |
 | 💾 Export PNG | Save your artwork as a timestamped PNG file |
-| ⟺ Mirror Toggle | Flip drawing layer independently of the video feed |
-| 📡 Hand Skeleton | Live landmark skeleton drawn on both hands |
-| ⚡ FPS Counter | Live rolling average performance indicator |
-| 🎬 Onboarding | First-launch guide overlay with gesture instructions |
-| 🔲 Collapsible Panel | Full-screen drawing mode with panel hide/show |
+| ⟺ Mirror Toggle | Flip the drawing layer independently of the video feed |
+| 📡 Hand Skeleton | Live 21-point landmark skeleton drawn on both hands |
+| ⚡ FPS Counter | Live rolling-average performance indicator |
+| 🎬 Onboarding | First-launch guide overlay with full gesture reference |
+| 🔲 Collapsible Panel | Full-screen drawing mode with animated slide-in/out side panel |
+| 🟡 Grab Progress Arc | Animated arc ring shows fist-hold charge progress before an object is grabbed |
+| 🖼️ Object Model | Every stroke and shape is stored as a data object — fully movable and undoable |
 
 ---
 
 ## 🤌 Gesture Reference
 
-### Right Hand — Drawing
+### Right Hand — Drawing & Interaction
 
 | Gesture | Action |
 |---|---|
-| ☝️ Index finger only | Draw stroke |
-| 🖐️ All 5 fingers spread | Eraser mode |
-| ✌️ 2–4 fingers up | Lift pen (pause drawing) |
+| ☝️ Index finger only | Draw stroke (Freehand) / Set shape start point (Shape) |
+| ✌️ 2 fingers up | Commit shape (Shape mode) / Lift pen (Freehand) |
+| 🖐️ All 5 fingers spread | Eraser mode — erase objects under cursor |
+| ✊ Closed fist (hold) | Grab object (Move mode) — watch the gold arc fill to confirm |
+| 🖐️ Open hand | Release grabbed object (Move mode) |
 
 ### Left Hand — Controls
 
@@ -49,8 +55,34 @@
 | 3 fingers | Color → Mint |
 | 4 fingers | Color → Gold |
 | 5 fingers | Color → Flame |
-| 🤏 Pinch | Adjust brush thickness |
-| ✊ Fist (hold 0.6s) | Clear entire canvas |
+| 🤏 Pinch | Adjust brush thickness (spread = thicker, narrow = thinner) |
+| ✊ Fist (hold 0.6 s) | Clear entire canvas |
+
+---
+
+## 🔲 Shape Mode
+
+Switch to **Shape** mode in the panel, then choose **Line**, **Rect**, or **Circle**:
+
+1. **Index finger only** → sets the start point (shown as a glowing dot)
+2. **Move** your index finger to preview the shape live (dashed outline)
+3. **Two fingers up** → commits the shape to the canvas
+
+Shapes are stored as objects and can be moved, undone, and erased just like strokes.
+
+---
+
+## ✋ Move Mode
+
+Switch to **Move** mode in the panel:
+
+1. Position your right hand over any stroke or shape
+2. **Close your fist** — a gold arc ring charges around your cursor
+3. When the arc completes the object is **grabbed** (dashed bounding box appears)
+4. **Move your hand** to drag the object
+5. **Open your hand** to drop it
+
+Moved objects retain their offset and can be further moved or undone independently.
 
 ---
 
@@ -67,7 +99,6 @@ Just double-click `air_canvas.html` or drag it into any Chromium-based browser.
 ### Option 2 — Clone from GitHub
 
 ```bash
-
 # Clone the repository
 git clone https://github.com/ayuuXploits/air_canvas.html.git
 
@@ -133,7 +164,6 @@ npx live-server --port=8080
 ## 📥 Download via curl
 
 ```bash
-
 # Download the app file directly
 curl -L https://raw.githubusercontent.com/ayuuXploits/air-canvas/main/air_canvas.html \
      -o air_canvas.html
@@ -203,8 +233,8 @@ https://ayuuXploits.github.io/air-canvas/air_canvas.html
 | Technology | Purpose |
 |---|---|
 | HTML5 Canvas | Drawing layer and video compositing |
-| CSS3 | UI, animations, collapsible panel |
-| Vanilla JavaScript | App logic, gesture processing, undo stack |
+| CSS3 | UI, animations, collapsible panel, SVG grab-arc |
+| Vanilla JavaScript | App logic, object model, gesture FSM, undo stack |
 | [MediaPipe Hands](https://developers.google.com/mediapipe/solutions/vision/hand_landmarker) | Real-time 21-point hand landmark detection |
 | MediaPipe Camera Utils | Webcam frame capture pipeline |
 | Google Fonts — Syne + Space Mono | Typography |
@@ -217,9 +247,9 @@ No build tools. No frameworks. No dependencies to install. One `.html` file.
 
 ```
 air-canvas/
-└── README.md                 # This file
+├── README.md                 # This file
 ├── air_canvas.html           # Main application (single file)
-└── air_canvas_lite.html      # lite/ mini version of main application
+└── air_canvas_lite.html      # Lite / mini version of main application
 ```
 
 ---
@@ -236,6 +266,12 @@ air-canvas/
 - Keep hands within the camera frame
 - Stay 40–80 cm from the camera for best accuracy
 
+**Move mode not grabbing?**
+- Make sure you are in **Move** mode (panel button)
+- Close your fist fully and hold still — wait for the gold arc to complete
+- Hover directly over a drawn stroke or shape, not empty canvas
+- Try adjusting room lighting; fist detection needs clear finger landmarks
+
 **Laggy drawing?**
 - Close other browser tabs to free up CPU
 - Lower your browser zoom to 100%
@@ -250,14 +286,11 @@ air-canvas/
 
 ```
 Copyright (c) 2026 ayuuXploits
+```
 
-
+---
 
 ## 🙌 Author
 
 **ayuuXploits**
 - GitHub: [@ayuuXploits](https://github.com/ayuuXploits)
-
----
-
-> 
