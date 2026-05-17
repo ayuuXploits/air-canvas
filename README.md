@@ -223,6 +223,9 @@ curl -L https://raw.githubusercontent.com/ayuuXploits/air-canvas/main/README.md 
 
 ```
 air-canvas/
+├── docs/
+|   ├── air_canvas1.png
+|   └── air_canvas2.png
 ├── README.md                 # This file
 ├── air_canvas.html           # Main application (single file)
 └── air_canvas_lite.html      # Lite / mini version of main application
