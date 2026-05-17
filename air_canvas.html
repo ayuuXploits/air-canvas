@@ -72,7 +72,6 @@
         .thickness-num { font-family:'Space Mono',monospace; font-size:18px; font-weight:700; color:#fff; display:flex; align-items:baseline; gap:4px; }
         .thickness-num small { font-size:10px; color:var(--muted); font-weight:400; }
 
-        /* ── MODE BUTTONS ── */
         .mode-row { display:flex; gap:5px; flex-wrap:wrap; }
         .mode-btn {
             flex:1; min-width:56px; padding:7px 4px; border-radius:8px;
@@ -98,7 +97,6 @@
         .shape-btn.active { border-color:rgba(79,216,255,0.4); background:rgba(79,216,255,0.08); color:var(--accent3); }
         .shape-btn:hover:not(.active) { background:rgba(255,255,255,0.05); color:var(--text); }
 
-        /* move info card */
         .move-info { background:rgba(255,221,79,0.04); border:1px solid rgba(255,221,79,0.15); border-radius:10px; padding:10px 12px; }
         .move-info p { font-family:'Space Mono',monospace; font-size:8px; color:rgba(255,221,79,0.7); line-height:1.7; }
         .move-info p strong { color:var(--accent4); }
@@ -160,7 +158,6 @@
             transform:translate(-50%,-50%); z-index:300; display:none;
             transition:width 0.08s, height 0.08s, border-color 0.15s;
         }
-        /* Move grab indicator */
         #grab-ring {
             position:absolute; width:60px; height:60px; border-radius:50%;
             border:2px dashed rgba(255,221,79,0.8); pointer-events:none;
@@ -168,10 +165,6 @@
         }
         #grab-ring.grabbing { border-style:solid; border-color:rgba(255,221,79,1); background:rgba(255,221,79,0.05); }
 
-        /* ── SELECTION HIGHLIGHT ── */
-        /* Drawn on the composite canvas — no DOM element needed */
-
-        /* ── COLOR FLASH ── */
         #color-flash {
             position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
             z-index:400; pointer-events:none; opacity:0;
@@ -181,7 +174,6 @@
         }
         #color-flash.show { opacity:1; }
 
-        /* ── LOADING ── */
         #loading {
             position:absolute; inset:0; background:var(--bg); z-index:999;
             display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
@@ -194,7 +186,6 @@
         #load-status { font-family:'Space Mono',monospace; font-size:9px; letter-spacing:0.2em; color:var(--muted); margin-top:-4px; }
         #retry-btn { display:none; padding:10px 24px; background:rgba(255,79,216,0.1); border:1px solid rgba(255,79,216,0.3); border-radius:10px; color:var(--accent2); font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.15em; cursor:pointer; text-transform:uppercase; }
 
-        /* ── CAMERA ERROR ── */
         #cam-error {
             display:none; position:absolute; inset:0; background:var(--bg); z-index:998;
             flex-direction:column; align-items:center; justify-content:center; gap:16px; text-align:center; padding:40px;
@@ -204,7 +195,6 @@
         .cam-error-msg { font-family:'Space Mono',monospace; font-size:11px; color:var(--muted); line-height:1.8; max-width:380px; }
         #cam-retry-btn { padding:10px 24px; background:rgba(79,255,176,0.1); border:1px solid rgba(79,255,176,0.3); border-radius:10px; color:var(--accent); font-family:'Space Mono',monospace; font-size:11px; cursor:pointer; text-transform:uppercase; margin-top:8px; }
 
-        /* ── ONBOARDING ── */
         #onboarding {
             position:absolute; inset:0; z-index:500; background:rgba(8,10,15,0.88);
             backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; transition:opacity 0.6s;
@@ -228,7 +218,6 @@
         #ob-dismiss { padding:12px 32px; background:rgba(79,255,176,0.1); border:1px solid rgba(79,255,176,0.3); border-radius:10px; color:var(--accent); font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.15em; cursor:pointer; text-transform:uppercase; transition:all 0.2s; }
         #ob-dismiss:hover { background:rgba(79,255,176,0.2); }
 
-        /* ── TOAST ── */
         #toast {
             position:absolute; bottom:28px; left:50%; transform:translateX(-50%) translateY(70px);
             background:var(--surface); border:1px solid var(--border); backdrop-filter:blur(12px);
@@ -238,6 +227,12 @@
             opacity:0; white-space:nowrap; pointer-events:none;
         }
         #toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+
+        /* Move mode grab progress ring */
+        #grab-progress {
+            position:absolute; pointer-events:none; z-index:301; display:none;
+            transform:translate(-50%,-50%);
+        }
     </style>
 </head>
 <body>
@@ -260,6 +255,13 @@
     <canvas id="output_canvas"></canvas>
     <div id="cursor-ring"></div>
     <div id="grab-ring"></div>
+    <!-- SVG progress arc for grab confirmation -->
+    <svg id="grab-progress" width="80" height="80" viewBox="0 0 80 80">
+        <circle cx="40" cy="40" r="36" fill="none" stroke="rgba(255,221,79,0.15)" stroke-width="3"/>
+        <circle id="grab-arc" cx="40" cy="40" r="36" fill="none" stroke="#ffdd4f" stroke-width="3"
+                stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="226"
+                transform="rotate(-90 40 40)" style="transition:stroke-dashoffset 0.05s linear;"/>
+    </svg>
     <div id="color-flash"></div>
 
     <!-- ONBOARDING -->
@@ -279,7 +281,7 @@
                     <div class="ob-step-icon">✊</div>
                     <div class="ob-step-text">
                         <div class="ob-step-title">RIGHT HAND — Move objects</div>
-                        <div class="ob-step-desc">Switch to MOVE mode in panel · Close fist over an object to grab it · Move hand to drag · Open hand to release</div>
+                        <div class="ob-step-desc">Switch to MOVE mode · Close fist ✊ over object (hold briefly) · Drag to reposition · Open hand 🖐 to drop</div>
                     </div>
                     <div class="hand-badge right">R</div>
                 </div>
@@ -347,7 +349,6 @@
             </div>
         </div>
 
-        <!-- DRAW MODES -->
         <div>
             <div class="sec-label">Draw Mode</div>
             <div class="mode-row">
@@ -366,7 +367,6 @@
             </div>
         </div>
 
-        <!-- SHAPE SELECTOR -->
         <div id="shape-selector" style="display:none;">
             <div class="sec-label">Shape Type</div>
             <div class="shape-row">
@@ -376,18 +376,17 @@
             </div>
         </div>
 
-        <!-- MOVE INFO -->
         <div id="move-info" style="display:none;">
             <div class="move-info">
                 <p><strong>How to move:</strong><br>
                 1. Switch to MOVE mode<br>
-                2. Close fist ✊ over any object<br>
-                3. Drag your hand to reposition<br>
-                4. Open hand 🖐 to drop it</p>
+                2. Hover fist ✊ over object<br>
+                3. Hold closed fist to grab (watch arc)<br>
+                4. Drag to reposition<br>
+                5. Open hand 🖐 to drop</p>
             </div>
         </div>
 
-        <!-- THICKNESS -->
         <div>
             <div class="sec-label">Brush Thickness</div>
             <div class="thickness-display">
@@ -396,7 +395,6 @@
             </div>
         </div>
 
-        <!-- PALETTE -->
         <div>
             <div class="sec-label">Color Palette</div>
             <div class="palette">
@@ -413,7 +411,6 @@
             </div>
         </div>
 
-        <!-- CAMERA TOGGLE -->
         <div>
             <div class="sec-label">View Options</div>
             <div class="toggle-row">
@@ -425,7 +422,6 @@
             </div>
         </div>
 
-        <!-- GESTURE REFERENCE -->
         <div>
             <div class="sec-label">Gesture Controls</div>
             <div class="gesture-list">
@@ -436,7 +432,7 @@
                 </div>
                 <div class="gesture-item hl-yellow">
                     <div class="gesture-icon">✊</div>
-                    <div class="gesture-text"><div class="gesture-action">Grab &amp; move object</div><div class="gesture-desc">In MOVE mode — closed fist</div></div>
+                    <div class="gesture-text"><div class="gesture-action">Grab &amp; move object</div><div class="gesture-desc">MOVE mode — hold closed fist</div></div>
                     <div class="hand-badge right">R</div>
                 </div>
                 <div class="gesture-item">
@@ -481,21 +477,16 @@ const canvas     = document.getElementById('output_canvas');
 const ctx        = canvas.getContext('2d');
 const cursorRing = document.getElementById('cursor-ring');
 const grabRing   = document.getElementById('grab-ring');
+const grabProgress = document.getElementById('grab-progress');
+const grabArc    = document.getElementById('grab-arc');
 const colorFlash = document.getElementById('color-flash');
+const GRAB_ARC_CIRC = 226; // 2π×36
 
 // ═══════════════════════════════════════════════════
-//  OBJECT MODEL  ← THE KEY ARCHITECTURAL CHANGE
-//  Instead of painting to a flat canvas, every stroke
-//  and shape is stored as a data object. The canvas
-//  redraws from the object list every frame.
+//  OBJECT MODEL
 // ═══════════════════════════════════════════════════
-// Object types:
-//   { type:'stroke', points:[{x,y},...], color, thickness, offsetX, offsetY }
-//   { type:'shape',  shapeType:'line'|'rect'|'circle', x1,y1,x2,y2, color, thickness, offsetX, offsetY }
-//
-// offsetX/offsetY accumulate movement deltas
-let objects   = [];   // all committed objects
-let undoStack = [];   // snapshots of objects array (deep copies)
+let objects   = [];
+let undoStack = [];
 const MAX_UNDO = 30;
 
 // ═══════════════════════════════════════════════════
@@ -508,52 +499,55 @@ let smoothThickness = 15;
 let isMirrored      = true;
 let showCameraBG    = true;
 let panelOpen       = true;
-let drawMode        = 'freehand';   // 'freehand'|'shape'|'move'|'erase'
+let drawMode        = 'freehand';
 let shapeType       = 'line';
 
-// Freehand stroke being built
-let currentStroke = null;   // { points:[{x,y},...], color, thickness }
-let prevX = null, prevY = null, prevMidX = null, prevMidY = null;
+// Freehand
+let currentStroke = null;
+let prevMidX = null, prevMidY = null;
 
-// Shape state machine
+// Shape state
 let shapeState  = 'idle';
 let shapeStartX = null, shapeStartY = null;
 let shapePreviewX = null, shapePreviewY = null;
 
-// Move state machine
-let moveState      = 'idle';    // 'idle' | 'grabbed'
-let grabbedObjIdx  = -1;
-let grabOffsetX    = 0, grabOffsetY = 0;  // offset from object origin to grab point
-let prevGrabX      = null, prevGrabY = null;
+// ─── MOVE STATE ───────────────────────────────────
+// FIX: Unified, clearly-named move state machine
+// States: 'idle' → 'charging' (fist held, waiting) → 'grabbed' (object locked) → 'idle'
+let moveState       = 'idle';
+let grabbedObjIdx   = -1;
+let grabChargeFrames = 0;       // FIX: was never incremented in original
+const GRAB_CHARGE_NEEDED = 8;   // frames of closed fist needed to grab
+let prevGrabX = null, prevGrabY = null;
 
-// Erase-by-object state
-let eraserX = null, eraserY = null;
+// FIX: Track raw fist state per frame (not debounced) for release detection
+let rightFistRaw    = false;    // true if fist is closed THIS frame
 
-// Gesture debounce
-let gestureFrames = { indexOnly:0, twoFingers:0, allFive:0, fist:0 };
-const G_THRESH    = 3;
+// ─────────────────────────────────────────────────
 
-// Eraser flood-undo fix
+// Erase
 let wasErasing = false;
+let eraseSnapshotSaved = false;
 
-// Left-hand fist clear
+// Left-hand clear fist
 let fistFrameCount = 0;
 const FIST_HOLD    = 18;
 let fistFired      = false;
 
-// Right-hand fist (move grab)
-let rightFistFrames = 0;
-const GRAB_THRESH   = 4;  // frames before grab confirms
-
 // Active-hand tracking
 let rightHandActive = false, leftHandActive = false;
+let rightHandSeen   = false;  // FIX: detected this results() call
+
+// Gesture debounce (right hand only, for draw gestures)
+let gestureFrames = { indexOnly:0, twoFingers:0, allFive:0 };
+const G_THRESH    = 3;
 
 // FPS
 let lastFrameTime = performance.now();
 let fpsBuffer = [];
 
 // ═══════════════════════════════════════════════════
-//  FINGER / THUMB HELPERS
+//  FINGER / FIST HELPERS
 // ═══════════════════════════════════════════════════
 function isFingerUp(lm, tip, pip) { return lm[tip].y < lm[pip].y; }
 function isThumbUp(lm) {
@@ -561,10 +555,21 @@ function isThumbUp(lm) {
     const baseDist = Math.hypot(lm[3].x - lm[5].x, lm[3].y - lm[5].y);
     return tipDist > baseDist * 1.1;
 }
+
+// FIX: More reliable fist detection — checks all 4 fingers curled
+// Uses tip-to-wrist distance to handle angled hands better
 function isFistClosed(lm) {
-    // All four finger tips below their PIP joints
-    return !isFingerUp(lm,8,6) && !isFingerUp(lm,12,10) &&
-           !isFingerUp(lm,16,14) && !isFingerUp(lm,20,18);
+    const wrist = lm[0];
+    // Each finger: tip should be closer to wrist than MCP (knuckle)
+    const tips = [8, 12, 16, 20];
+    const mcps = [5,  9, 13, 17];
+    let curledCount = 0;
+    for (let i = 0; i < tips.length; i++) {
+        const tipDist = Math.hypot(lm[tips[i]].x - wrist.x, lm[tips[i]].y - wrist.y);
+        const mcpDist = Math.hypot(lm[mcps[i]].x - wrist.x, lm[mcps[i]].y - wrist.y);
+        if (tipDist < mcpDist * 1.1) curledCount++;
+    }
+    return curledCount >= 3; // FIX: 3-of-4 threshold — more forgiving than requiring all 4
 }
 
 // ═══════════════════════════════════════════════════
@@ -572,7 +577,6 @@ function isFistClosed(lm) {
 // ═══════════════════════════════════════════════════
 const loadBar    = document.getElementById('load-bar');
 const loadStatus = document.getElementById('load-status');
-
 function advanceLoad(to, label) { loadBar.style.width=to+'%'; loadStatus.textContent=label; }
 
 const loadTimeout = setTimeout(() => {
@@ -590,7 +594,6 @@ function resizeCanvas() {
     if (canvas.width === video.videoWidth && canvas.height === video.videoHeight) return;
     canvas.width  = video.videoWidth;
     canvas.height = video.videoHeight;
-    // Objects are resolution-independent (stored as canvas coords), so no rescaling needed
 }
 window.addEventListener('resize', resizeCanvas);
 
@@ -631,7 +634,7 @@ function togglePanel() {
 function toggleMirror() {
     isMirrored = !isMirrored;
     document.getElementById('mirror-btn').classList.toggle('active', isMirrored);
-    prevX=null; prevY=null;
+    currentStroke = null;
     showToast(isMirrored ? 'Mirror ON' : 'Mirror OFF');
 }
 function toggleCameraBG(on) { showCameraBG=on; showToast(on ? 'Camera BG ON' : 'Camera BG OFF'); }
@@ -657,11 +660,11 @@ function setDrawMode(mode) {
     const chip = document.getElementById('mode-chip');
     chip.textContent = MODE_ACCENTS[mode].chip + (mode==='shape' ? ': '+shapeType.toUpperCase() : '');
     chip.style.color = MODE_ACCENTS[mode].chipColor;
-    // Reset transient states
+    // Reset all transient state
     shapeState='idle'; shapeStartX=null;
-    moveState='idle'; grabbedObjIdx=-1;
-    prevX=null; prevY=null;
+    resetMoveState();
     currentStroke=null;
+    wasErasing=false; eraseSnapshotSaved=false;
     showToast('Mode: '+mode.charAt(0).toUpperCase()+mode.slice(1));
 }
 
@@ -671,6 +674,17 @@ function setShapeType(type) {
     document.getElementById('mode-chip').textContent = '🔲 SHAPE: '+type.toUpperCase();
     shapeState='idle'; shapeStartX=null;
     showToast('Shape: '+type);
+}
+
+// FIX: Centralized move reset — prevents stale state
+function resetMoveState() {
+    moveState       = 'idle';
+    grabbedObjIdx   = -1;
+    grabChargeFrames = 0;
+    prevGrabX       = null;
+    prevGrabY       = null;
+    grabProgress.style.display = 'none';
+    grabRing.classList.remove('grabbing');
 }
 
 // ═══════════════════════════════════════════════════
@@ -715,7 +729,7 @@ function updateThickness(t) {
 }
 
 // ═══════════════════════════════════════════════════
-//  UNDO — deep-copy object array
+//  UNDO
 // ═══════════════════════════════════════════════════
 function saveSnapshot() {
     if (undoStack.length >= MAX_UNDO) undoStack.shift();
@@ -724,6 +738,8 @@ function saveSnapshot() {
 function undoAction() {
     if (!undoStack.length) { showToast('Nothing to undo'); return; }
     objects = undoStack.pop();
+    // FIX: if grabbed object was deleted by undo, reset move state
+    if (grabbedObjIdx >= objects.length) resetMoveState();
     showToast('Undo');
 }
 document.addEventListener('keydown', e => {
@@ -733,16 +749,19 @@ document.addEventListener('keydown', e => {
 // ═══════════════════════════════════════════════════
 //  CLEAR & EXPORT
 // ═══════════════════════════════════════════════════
-function clearCanvas() { saveSnapshot(); objects=[]; showToast('Canvas cleared'); }
+function clearCanvas() {
+    saveSnapshot();
+    objects=[];
+    resetMoveState();  // FIX: reset move state when clearing
+    showToast('Canvas cleared');
+}
 
 function exportPNG() {
     const exp = document.createElement('canvas');
     exp.width=canvas.width; exp.height=canvas.height;
     const ec = exp.getContext('2d');
     if (!showCameraBG) { ec.fillStyle='#000'; ec.fillRect(0,0,exp.width,exp.height); }
-    else { ec.drawImage(canvas,0,0); }
-    // Re-render objects cleanly onto export canvas
-    renderObjects(ec, exp.width, exp.height);
+    renderObjects(ec, exp.width, exp.height, -1);
     const a = document.createElement('a');
     a.href=exp.toDataURL('image/png');
     a.download='air-canvas-'+Date.now()+'.png';
@@ -762,35 +781,26 @@ function showToast(msg) {
 }
 
 // ═══════════════════════════════════════════════════
-//  OBJECT RENDERING  — called every frame
+//  OBJECT RENDERING
 // ═══════════════════════════════════════════════════
-function renderObjects(targetCtx, w, h, selectedIdx=-1) {
+function renderObjects(targetCtx, w, h, selectedIdx) {
     for (let i=0; i<objects.length; i++) {
         const obj = objects[i];
         const isSelected = i === selectedIdx;
         targetCtx.save();
-
-        // Apply movement offset
         targetCtx.translate(obj.offsetX||0, obj.offsetY||0);
-
-        targetCtx.strokeStyle = obj.color;
-        targetCtx.lineWidth   = obj.thickness;
+        targetCtx.strokeStyle = isSelected ? '#ffdd4f' : obj.color;
+        targetCtx.lineWidth   = isSelected ? obj.thickness + 3 : obj.thickness;
         targetCtx.lineCap     = 'round';
         targetCtx.lineJoin    = 'round';
         targetCtx.shadowBlur  = isSelected ? 20 : 8;
         targetCtx.shadowColor = isSelected ? '#ffdd4f' : obj.color;
-
-        if (isSelected) {
-            targetCtx.strokeStyle = '#ffdd4f';
-            targetCtx.lineWidth   = obj.thickness + 3;
-        }
-
         targetCtx.beginPath();
 
         if (obj.type === 'stroke') {
             const pts = obj.points;
+            if (!pts || pts.length === 0) { targetCtx.restore(); continue; }
             if (pts.length < 2) {
-                // Single dot
                 targetCtx.arc(pts[0].x, pts[0].y, obj.thickness*0.5, 0, Math.PI*2);
                 targetCtx.fillStyle = isSelected ? '#ffdd4f' : obj.color;
                 targetCtx.fill();
@@ -819,8 +829,10 @@ function renderObjects(targetCtx, w, h, selectedIdx=-1) {
                 case 'circle': {
                     const rx = Math.abs(obj.x2-obj.x1)/2;
                     const ry = Math.abs(obj.y2-obj.y1)/2;
-                    targetCtx.ellipse((obj.x1+obj.x2)/2, (obj.y1+obj.y2)/2, Math.max(1,rx), Math.max(1,ry), 0, 0, Math.PI*2);
-                    targetCtx.stroke();
+                    if (rx > 0 && ry > 0) {
+                        targetCtx.ellipse((obj.x1+obj.x2)/2, (obj.y1+obj.y2)/2, rx, ry, 0, 0, Math.PI*2);
+                        targetCtx.stroke();
+                    }
                     break;
                 }
             }
@@ -830,11 +842,11 @@ function renderObjects(targetCtx, w, h, selectedIdx=-1) {
 }
 
 // ═══════════════════════════════════════════════════
-//  BOUNDING BOX & HIT TEST  (for move selection)
+//  BOUNDING BOX & HIT TEST
 // ═══════════════════════════════════════════════════
 function getObjectBounds(obj) {
     const ox = obj.offsetX||0, oy = obj.offsetY||0;
-    const pad = Math.max(obj.thickness*1.5, 20);
+    const pad = Math.max(obj.thickness * 2, 24); // FIX: bigger padding for easier grab
     if (obj.type === 'stroke') {
         let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
         for (const p of obj.points) {
@@ -846,13 +858,13 @@ function getObjectBounds(obj) {
     } else {
         const x1=Math.min(obj.x1,obj.x2)+ox, y1=Math.min(obj.y1,obj.y2)+oy;
         const x2=Math.max(obj.x1,obj.x2)+ox, y2=Math.max(obj.y1,obj.y2)+oy;
-        return { x:x1-pad, y:y1-pad, w:x2-x1+pad*2, h:y2-y1+pad*2,
+        return { x:x1-pad, y:y1-pad, w:(x2-x1)+pad*2, h:(y2-y1)+pad*2,
                  cx:(x1+x2)/2, cy:(y1+y2)/2 };
     }
 }
 
+// FIX: Hit test uses index finger position (visible cursor) not palm center
 function findObjectAtPoint(px, py) {
-    // Search from top (latest) to bottom so newest objects get picked first
     for (let i=objects.length-1; i>=0; i--) {
         const b = getObjectBounds(objects[i]);
         if (px >= b.x && px <= b.x+b.w && py >= b.y && py <= b.y+b.h) return i;
@@ -860,7 +872,6 @@ function findObjectAtPoint(px, py) {
     return -1;
 }
 
-// Draw bounding box overlay for selected object
 function drawSelectionBox(obj) {
     const b = getObjectBounds(obj);
     ctx.save();
@@ -868,7 +879,6 @@ function drawSelectionBox(obj) {
     ctx.lineWidth   = 1.5;
     ctx.setLineDash([6,4]);
     ctx.strokeRect(b.x, b.y, b.w, b.h);
-    // Corner handles
     ctx.setLineDash([]);
     ctx.fillStyle = 'rgba(255,221,79,0.9)';
     for (const [hx,hy] of [[b.x,b.y],[b.x+b.w,b.y],[b.x,b.y+b.h],[b.x+b.w,b.y+b.h]]) {
@@ -878,7 +888,7 @@ function drawSelectionBox(obj) {
 }
 
 // ═══════════════════════════════════════════════════
-//  SHAPE PREVIEW (dashed, drawn on composite ctx only)
+//  SHAPE PREVIEW
 // ═══════════════════════════════════════════════════
 function drawShapePreview(x1,y1,x2,y2) {
     ctx.save();
@@ -895,7 +905,7 @@ function drawShapePreview(x1,y1,x2,y2) {
         case 'rect': ctx.rect(x1,y1,x2-x1,y2-y1); break;
         case 'circle': {
             const rx=Math.abs(x2-x1)/2, ry=Math.abs(y2-y1)/2;
-            ctx.ellipse((x1+x2)/2,(y1+y2)/2,Math.max(1,rx),Math.max(1,ry),0,0,Math.PI*2);
+            if (rx>0 && ry>0) ctx.ellipse((x1+x2)/2,(y1+y2)/2,rx,ry,0,0,Math.PI*2);
             break;
         }
     }
@@ -941,6 +951,98 @@ function updateFPS() {
 }
 
 // ═══════════════════════════════════════════════════
+//  MOVE MODE HANDLER  ← Complete rewrite of move logic
+// ═══════════════════════════════════════════════════
+function handleMoveMode(landmarks, screenX, screenY) {
+    // Use index finger tip as the grab cursor (it's what the user sees)
+    const fingerX = landmarks[8].x * canvas.width;
+    const fingerY = landmarks[8].y * canvas.height;
+
+    // FIX: Read raw fist state once, clearly
+    const fistNow = isFistClosed(landmarks);
+
+    // Show grab ring at finger position
+    cursorRing.style.display = 'none';
+    grabRing.style.display   = 'block';
+    grabRing.style.left      = screenX + 'px';
+    grabRing.style.top       = screenY + 'px';
+
+    if (moveState === 'idle') {
+        // ── IDLE: waiting for user to form a fist over an object ──
+        grabRing.classList.remove('grabbing');
+        grabProgress.style.display = 'none';
+
+        const hoverIdx = findObjectAtPoint(fingerX, fingerY);
+
+        if (fistNow && hoverIdx !== -1) {
+            // FIX: Increment charge counter only while fist is closed AND over an object
+            grabChargeFrames++;
+            grabRing.style.borderColor = `rgba(255,221,79,${0.5 + 0.5*(grabChargeFrames/GRAB_CHARGE_NEEDED)})`;
+
+            // Show charge progress arc
+            grabProgress.style.display = 'block';
+            grabProgress.style.left = screenX + 'px';
+            grabProgress.style.top  = screenY + 'px';
+            const progress = Math.min(grabChargeFrames / GRAB_CHARGE_NEEDED, 1);
+            grabArc.setAttribute('stroke-dashoffset',
+                String(GRAB_ARC_CIRC - GRAB_ARC_CIRC * progress));
+
+            if (grabChargeFrames >= GRAB_CHARGE_NEEDED) {
+                // FIX: Grab confirmed — transition to 'grabbed'
+                saveSnapshot();
+                grabbedObjIdx = hoverIdx;
+                moveState     = 'grabbed';
+                prevGrabX     = fingerX;
+                prevGrabY     = fingerY;
+                grabProgress.style.display = 'none';
+                grabRing.classList.add('grabbing');
+                showToast('Grabbed! Move your hand to drag');
+            }
+        } else {
+            // FIX: Reset charge if fist opens OR moves off object
+            grabChargeFrames = 0;
+            grabProgress.style.display = 'none';
+            grabArc.setAttribute('stroke-dashoffset', String(GRAB_ARC_CIRC));
+            grabRing.style.borderColor = 'rgba(255,221,79,0.6)';
+        }
+
+        // Highlight hovered object
+        if (hoverIdx !== -1) drawSelectionBox(objects[hoverIdx]);
+
+    } else if (moveState === 'grabbed') {
+        // ── GRABBED: dragging the object ──
+        grabRing.classList.add('grabbing');
+        grabProgress.style.display = 'none';
+
+        // FIX: Release when fist opens — check raw fistNow, not debounced counter
+        if (!fistNow) {
+            showToast('Object released');
+            resetMoveState();
+            return; // done for this frame
+        }
+
+        // FIX: Safety check — grabbed object might have been removed by undo
+        if (grabbedObjIdx < 0 || grabbedObjIdx >= objects.length) {
+            resetMoveState();
+            return;
+        }
+
+        // Drag: apply delta to offset
+        if (prevGrabX !== null && prevGrabY !== null) {
+            const dx = fingerX - prevGrabX;
+            const dy = fingerY - prevGrabY;
+            objects[grabbedObjIdx].offsetX = (objects[grabbedObjIdx].offsetX || 0) + dx;
+            objects[grabbedObjIdx].offsetY = (objects[grabbedObjIdx].offsetY || 0) + dy;
+        }
+        prevGrabX = fingerX;
+        prevGrabY = fingerY;
+
+        // Highlight grabbed object
+        drawSelectionBox(objects[grabbedObjIdx]);
+    }
+}
+
+// ═══════════════════════════════════════════════════
 //  MEDIAPIPE onResults
 // ═══════════════════════════════════════════════════
 function onResults(results) {
@@ -950,7 +1052,6 @@ function onResults(results) {
     ctx.save();
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
-    // Camera / solid background
     if (showCameraBG) {
         ctx.save();
         if (isMirrored) { ctx.translate(canvas.width,0); ctx.scale(-1,1); }
@@ -963,6 +1064,7 @@ function onResults(results) {
 
     rightHandActive = false;
     leftHandActive  = false;
+    rightHandSeen   = false;
 
     if (results.multiHandLandmarks && results.multiHandedness) {
         results.multiHandLandmarks.forEach((rawLm, index) => {
@@ -978,98 +1080,39 @@ function onResults(results) {
             const x = indexTip.x * canvas.width;
             const y = indexTip.y * canvas.height;
 
+            // Screen-space position for DOM cursor elements
+            const effectiveLeft = panelOpen ? 280 : 0;
+            const screenX = effectiveLeft + indexTip.x*(window.innerWidth-effectiveLeft);
+            const screenY = indexTip.y * window.innerHeight;
+
             if (isRightHand) {
                 rightHandActive = true;
+                rightHandSeen   = true;
                 drawSkeleton(landmarks, '#4fffb0', 0.3);
 
-                // Finger states
                 const f2 = isFingerUp(landmarks,8,6);
                 const f3 = isFingerUp(landmarks,12,10);
                 const f4 = isFingerUp(landmarks,16,14);
                 const f5 = isFingerUp(landmarks,20,18);
                 const thumbUp    = isThumbUp(landmarks);
-                const fingerCount = [f2,f3,f4,f5].filter(Boolean).length;
-                const allFiveUp   = thumbUp && fingerCount===4;
-                const indexOnly   = f2 && !f3 && !f4 && !f5;
-                const twoFingers  = f2 && f3 && !f4 && !f5;
-                const fistClosed  = isFistClosed(landmarks);
+                const indexOnly  = f2 && !f3 && !f4 && !f5;
+                const twoFingers = f2 && f3 && !f4 && !f5;
+                const allFiveUp  = thumbUp && f2 && f3 && f4 && f5;
 
-                // Gesture debounce
                 gestureFrames.indexOnly  = indexOnly  ? gestureFrames.indexOnly+1  : 0;
                 gestureFrames.twoFingers = twoFingers ? gestureFrames.twoFingers+1 : 0;
                 gestureFrames.allFive    = allFiveUp  ? gestureFrames.allFive+1    : 0;
-                gestureFrames.fist       = fistClosed ? gestureFrames.fist+1       : 0;
 
                 const ci = gestureFrames.indexOnly  >= G_THRESH;
                 const c2 = gestureFrames.twoFingers >= G_THRESH;
                 const c5 = gestureFrames.allFive    >= G_THRESH;
-                const cf = gestureFrames.fist       >= GRAB_THRESH;
 
-                // Cursor ring
-                const effectiveLeft = panelOpen ? 280 : 0;
-                const screenX = effectiveLeft + indexTip.x*(window.innerWidth-effectiveLeft);
-                const screenY = indexTip.y * window.innerHeight;
-
-                // Palm centre for grab detection
-                const palmX = landmarks[0].x * canvas.width;
-                const palmY = landmarks[0].y * canvas.height;
-
-                // ──────────────────────────────────────────
-                //  MOVE MODE
-                // ──────────────────────────────────────────
+                // ── MOVE MODE ──────────────────────────────────
                 if (drawMode === 'move') {
-                    cursorRing.style.display = 'none';
-                    grabRing.style.display   = 'block';
-                    grabRing.style.left      = screenX + 'px';
-                    grabRing.style.top       = screenY + 'px';
+                    // FIX: Delegate entirely to the new clean handler
+                    handleMoveMode(landmarks, screenX, screenY);
 
-                    if (moveState === 'idle') {
-                        grabRing.classList.remove('grabbing');
-                        grabRing.style.borderColor = 'rgba(255,221,79,0.7)';
-
-                        if (cf) {
-                            // Try to grab closest object to palm
-                            const hitIdx = findObjectAtPoint(palmX, palmY);
-                            if (hitIdx !== -1) {
-                                saveSnapshot();
-                                grabbedObjIdx = hitIdx;
-                                moveState     = 'grabbed';
-                                prevGrabX     = palmX;
-                                prevGrabY     = palmY;
-                                showToast('Object grabbed!');
-                            }
-                        }
-                        // Highlight hovered object
-                        const hoverIdx = findObjectAtPoint(palmX, palmY);
-                        if (hoverIdx !== -1) drawSelectionBox(objects[hoverIdx]);
-
-                    } else if (moveState === 'grabbed') {
-                        grabRing.classList.add('grabbing');
-                        grabRing.style.left = screenX + 'px';
-                        grabRing.style.top  = screenY + 'px';
-
-                        if (!fistClosed && !cf) {
-                            // Released — drop object
-                            moveState     = 'idle';
-                            grabbedObjIdx = -1;
-                            prevGrabX     = null; prevGrabY = null;
-                            showToast('Object dropped');
-                        } else if (prevGrabX !== null) {
-                            // Apply delta to object offset
-                            const dx = palmX - prevGrabX;
-                            const dy = palmY - prevGrabY;
-                            objects[grabbedObjIdx].offsetX = (objects[grabbedObjIdx].offsetX||0) + dx;
-                            objects[grabbedObjIdx].offsetY = (objects[grabbedObjIdx].offsetY||0) + dy;
-                            prevGrabX = palmX;
-                            prevGrabY = palmY;
-                        }
-                        // Draw selection box on grabbed object
-                        if (grabbedObjIdx !== -1) drawSelectionBox(objects[grabbedObjIdx]);
-                    }
-
-                // ──────────────────────────────────────────
-                //  ERASER MODE (panel button or all-5 gesture in freehand)
-                // ──────────────────────────────────────────
+                // ── ERASE MODE ─────────────────────────────────
                 } else if (drawMode === 'erase' || (c5 && drawMode !== 'move')) {
                     grabRing.style.display   = 'none';
                     cursorRing.style.display = 'block';
@@ -1079,25 +1122,24 @@ function onResults(results) {
                     cursorRing.style.width  = '50px';
                     cursorRing.style.height = '50px';
 
-                    // Erase objects whose bounding box overlaps cursor
-                    if (!wasErasing) { saveSnapshot(); wasErasing = true; }
+                    // FIX: save snapshot once at start of erase stroke, not every frame
+                    if (!eraseSnapshotSaved) { saveSnapshot(); eraseSnapshotSaved = true; }
+                    wasErasing = true;
+
                     const ERASE_R = 30;
-                    const before = objects.length;
                     objects = objects.filter(obj => {
                         const b = getObjectBounds(obj);
                         const cx2 = b.x + b.w/2, cy2 = b.y + b.h/2;
                         return Math.hypot(x-cx2, y-cy2) > ERASE_R + Math.max(b.w,b.h)/2;
                     });
-                    // Visual eraser circle
+
                     ctx.beginPath(); ctx.arc(x,y,25,0,Math.PI*2);
                     ctx.strokeStyle='#ff6b4f'; ctx.lineWidth=2; ctx.stroke();
                     ctx.fillStyle='rgba(255,107,79,0.1)'; ctx.fill();
 
-                // ──────────────────────────────────────────
-                //  SHAPE MODE
-                // ──────────────────────────────────────────
+                // ── SHAPE MODE ─────────────────────────────────
                 } else if (drawMode === 'shape') {
-                    wasErasing = false;
+                    wasErasing = false; eraseSnapshotSaved = false;
                     grabRing.style.display   = 'none';
                     cursorRing.style.display = 'block';
                     cursorRing.style.left    = screenX+'px';
@@ -1107,7 +1149,6 @@ function onResults(results) {
                     cursorRing.style.height = '24px';
 
                     if (ci && shapeState==='idle') {
-                        // First confirmed index-only frame → set start
                         if (gestureFrames.indexOnly === G_THRESH) {
                             shapeStartX=x; shapeStartY=y; shapeState='drawing';
                         }
@@ -1120,7 +1161,6 @@ function onResults(results) {
                             shapePreviewX=x; shapePreviewY=y;
                         }
                         if (c2) {
-                            // Commit shape
                             saveSnapshot();
                             objects.push({
                                 type:'shape', shapeType, color:drawColor, thickness:brushThickness,
@@ -1132,13 +1172,11 @@ function onResults(results) {
                             showToast(shapeType.charAt(0).toUpperCase()+shapeType.slice(1)+' committed');
                         }
                     }
-                    prevX=null; prevY=null; currentStroke=null;
+                    currentStroke=null;
 
-                // ──────────────────────────────────────────
-                //  FREEHAND MODE
-                // ──────────────────────────────────────────
+                // ── FREEHAND MODE ──────────────────────────────
                 } else if (drawMode === 'freehand') {
-                    wasErasing = false;
+                    wasErasing = false; eraseSnapshotSaved = false;
                     grabRing.style.display   = 'none';
                     cursorRing.style.display = 'block';
                     cursorRing.style.left    = screenX+'px';
@@ -1155,26 +1193,16 @@ function onResults(results) {
                             objects.push(currentStroke);
                         }
                         currentStroke.points.push({x, y});
-                        prevX=x; prevY=y;
-
                     } else {
-                        // Pen up — finalise stroke
                         currentStroke=null;
-                        prevX=null; prevY=null; prevMidX=null; prevMidY=null;
                         cursorRing.style.borderColor = drawColor;
                         cursorRing.style.width  = '28px';
                         cursorRing.style.height = '28px';
                     }
                 }
 
-                if (!fistClosed) {
-                    if (moveState!=='grabbed') rightFistFrames=0;
-                }
-
             } else {
-                // ──────────────────────────────────────────
-                //  LEFT HAND — control
-                // ──────────────────────────────────────────
+                // ── LEFT HAND ──────────────────────────────────
                 leftHandActive = true;
                 drawSkeleton(landmarks, '#ff4fd8', 0.3);
 
@@ -1187,6 +1215,7 @@ function onResults(results) {
                 if (upFingers>=1 && upFingers<=gestureColors.length) {
                     const gc = gestureColors[upFingers-1];
                     if (gc.hex !== drawColor) setColor(gc.hex, gc.name, true);
+                    fistFrameCount=0; fistFired=false;
                 } else if (upFingers===0) {
                     fistFrameCount++;
                     if (fistFrameCount >= FIST_HOLD && !fistFired) {
@@ -1202,7 +1231,7 @@ function onResults(results) {
                 const dist = Math.hypot(indexTip.x-thumbTip.x, indexTip.y-thumbTip.y);
                 updateThickness(Math.max(5, Math.min(60, dist*300)));
 
-                // Wrist ring
+                // Wrist indicator ring
                 const wx = landmarks[0].x*canvas.width;
                 const wy = landmarks[0].y*canvas.height;
                 ctx.beginPath(); ctx.arc(wx,wy,32,0,Math.PI*2);
@@ -1220,18 +1249,24 @@ function onResults(results) {
     document.getElementById('dot-right').className = 'dot'+(rightHandActive?' right-on':'');
     document.getElementById('dot-left').className  = 'dot'+(leftHandActive?' left-on':'');
 
-    if (!rightHandActive) {
-        prevX=null; prevY=null; prevMidX=null; prevMidY=null;
-        currentStroke=null; wasErasing=false;
-        cursorRing.style.display='none'; grabRing.style.display='none';
-        if (moveState==='grabbed') { moveState='idle'; grabbedObjIdx=-1; }
+    // FIX: Clean up all right-hand state when hand disappears
+    if (!rightHandSeen) {
+        currentStroke=null;
+        wasErasing=false; eraseSnapshotSaved=false;
+        cursorRing.style.display='none';
+        grabRing.style.display='none';
+        grabProgress.style.display='none';
+
+        // FIX: Drop grabbed object gracefully if hand leaves frame
+        if (moveState === 'grabbed') {
+            showToast('Hand lost — object released');
+        }
+        // FIX: Reset entire move state (including 'charging') when hand leaves
+        if (moveState !== 'idle') resetMoveState();
     }
 
-    // ── Render all objects onto composite canvas ──
+    // Render all committed objects
     renderObjects(ctx, canvas.width, canvas.height, grabbedObjIdx);
-
-    // Draw in-progress freehand stroke preview (smooth curve)
-    // Objects already contain the points; renderObjects handles it
 
     ctx.restore();
 }
