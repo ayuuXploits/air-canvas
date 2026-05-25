@@ -3,441 +3,432 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AIR CANVAS LITE — Gesture Studio</title>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+    <title>AIR CANVAS LITE</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Familjen+Grotesk:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #080a0f;
-            --surface: rgba(12,16,26,0.92);
-            --border: rgba(255,255,255,0.07);
-            --accent: #4fffb0;
-            --accent2: #ff4fd8;
-            --accent3: #4fd8ff;
-            --text: #e8eaf0;
-            --muted: rgba(232,234,240,0.4);
-            --panel-w: 280px;
+            --bg: #06080d;
+            --glass: rgba(10,14,22,0.88);
+            --border: rgba(255,255,255,0.08);
+            --accent: #5bffb8;
+            --pink: #ff5bdb;
+            --blue: #5bc8ff;
+            --text: #dde2ee;
+            --muted: rgba(221,226,238,0.38);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--bg); font-family: 'Syne', sans-serif; overflow: hidden; color: var(--text); height: 100vh; width: 100vw; }
+        body { background: var(--bg); font-family: 'Familjen Grotesk', sans-serif; overflow: hidden; color: var(--text); height: 100vh; width: 100vw; }
+
+        /* ── LAYERS ── */
         #app { position: relative; width: 100vw; height: 100vh; }
+        #webcam { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: none; }
+        #view-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
-        video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: none; }
-        canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-
-        /* ── SIDE PANEL ── */
-        #panel {
-            position: absolute; top: 0; left: 0;
-            width: var(--panel-w); height: 100vh;
-            background: var(--surface);
-            border-right: 1px solid var(--border);
-            backdrop-filter: blur(20px) saturate(1.4);
+        /* ── TOOLBAR ── */
+        #toolbar {
+            position: absolute;
+            bottom: 28px; left: 50%; transform: translateX(-50%);
             z-index: 200;
-            display: flex; flex-direction: column;
-            padding: 22px 18px; gap: 18px;
-            overflow: hidden;
-            transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
-        }
-        #panel.collapsed { transform: translateX(calc(-1 * var(--panel-w))); }
-
-        #panel-tab {
-            position: absolute; top: 50%; left: var(--panel-w);
-            transform: translateY(-50%);
-            z-index: 201; width: 18px; height: 52px;
-            background: var(--surface); border: 1px solid var(--border);
-            border-left: none; border-radius: 0 8px 8px 0;
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            transition: left 0.35s cubic-bezier(0.4,0,0.2,1);
-        }
-        #panel.collapsed ~ #panel-tab { left: 0; }
-
-        .logo { display:flex; flex-direction:column; gap:2px; }
-        .logo-title { font-weight:800; font-size:20px; letter-spacing:0.15em; color:#fff; }
-        .sec-label { font-family:'Space Mono',monospace; font-size:9px; letter-spacing:0.25em; color:var(--muted); text-transform:uppercase; margin-bottom:7px; }
-
-        .status-grid { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
-        .status-card { background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; padding:10px; }
-        .status-card .label { font-family:'Space Mono',monospace; font-size:8px; color:var(--muted); }
-        .status-card .value { font-size:13px; font-weight:600; color:#fff; }
-
-        .color-row { display:flex; gap:5px; margin-bottom:5px; }
-        .color-swatch { flex:1; height:30px; border-radius:8px; border:2px solid transparent; cursor:pointer; }
-        .color-swatch.active { border-color:white; box-shadow:0 0 10px currentColor; }
-
-        .thickness-display { background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; padding:12px; }
-        .thickness-bar-wrap { width:100%; height:5px; background:rgba(255,255,255,0.08); border-radius:3px; margin-top:8px; }
-        .thickness-bar { height:100%; background:var(--accent); transition:width 0.1s; }
-
-        .gesture-list { display:flex; flex-direction:column; gap:5px; flex:1; overflow-y:auto; }
-        .gesture-item { display:flex; align-items:center; gap:8px; padding:7px 9px; background:rgba(255,255,255,0.02); border-radius:8px; border:1px solid var(--border); font-size:10px; }
-
-        .btn-row { display:flex; gap:8px; margin-top:auto; }
-        .btn { flex:1; padding:12px 6px; border-radius:10px; font-family:'Space Mono',monospace; font-size:10px; cursor:pointer; border:1px solid; background:rgba(255,255,255,0.05); color:white; }
-        
-        /* Air UI Hover Styling */
-        .btn.hovering { border-color: var(--accent); background: rgba(79, 255, 176, 0.1); }
-
-        #topbar {
-            position:absolute; top:16px; left:calc(var(--panel-w) + 16px); right:16px;
-            z-index:100; display:flex; justify-content:space-between; pointer-events:none;
-        }
-        .fps-chip { background:var(--surface); padding:7px 12px; border-radius:8px; font-family:'Space Mono',monospace; font-size:10px; color:var(--accent); }
-        
-        #cursor-ring {
-            position:absolute; width:28px; height:28px; border-radius:50%;
-            border:2px solid var(--accent); pointer-events:none;
-            transform:translate(-50%,-50%); z-index:300; transition: width 0.1s, height 0.1s;
+            display: flex; align-items: center; gap: 10px;
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 10px 16px;
+            backdrop-filter: blur(24px) saturate(1.6);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5);
         }
 
+        .divider { width: 1px; height: 24px; background: var(--border); margin: 0 2px; }
+
+        .swatch {
+            width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+            border: 2px solid transparent; transition: transform 0.15s, border-color 0.15s;
+            flex-shrink: 0;
+        }
+        .swatch:hover { transform: scale(1.15); }
+        .swatch.active { border-color: white; box-shadow: 0 0 0 2px rgba(255,255,255,0.15); }
+
+        .size-wrap { display: flex; align-items: center; gap: 7px; }
+        .size-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); min-width: 30px; }
+        input[type=range] {
+            -webkit-appearance: none; width: 70px; height: 3px;
+            background: rgba(255,255,255,0.12); border-radius: 2px; outline: none; cursor: pointer;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%;
+            background: var(--accent); cursor: pointer;
+        }
+
+        .tb-btn {
+            font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.12em;
+            background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+            color: var(--muted); padding: 6px 12px; border-radius: 10px; cursor: pointer;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+        .tb-btn:hover { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2); }
+
+        /* ── GESTURE BADGE ── */
+        #mode-badge {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 200;
+            background: var(--glass); border: 1px solid var(--border);
+            border-radius: 12px; padding: 7px 16px;
+            font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.18em;
+            color: var(--accent); backdrop-filter: blur(20px);
+            transition: color 0.2s;
+            pointer-events: none;
+        }
+        #mode-badge.erase { color: var(--pink); }
+        #mode-badge.idle  { color: var(--muted); }
+
+        /* ── CURSOR RINGS (one per hand) ── */
+        .cursor-ring {
+            position: absolute; pointer-events: none; z-index: 300;
+            width: 24px; height: 24px; border-radius: 50%;
+            border: 2px solid var(--accent);
+            transform: translate(-50%, -50%);
+            transition: border-color 0.15s, width 0.12s, height 0.12s, opacity 0.2s;
+            opacity: 0;
+        }
+        .cursor-ring.visible { opacity: 1; }
+        .cursor-ring.erase { border-color: var(--pink); width: 80px; height: 80px; }
+        /* left-hand eraser ring is always pink */
+        #ring-left { border-color: var(--pink); }
+
+        /* ── GESTURE GUIDE ── */
+        #guide {
+            position: absolute; top: 20px; right: 20px; z-index: 200;
+            background: var(--glass); border: 1px solid var(--border);
+            border-radius: 14px; padding: 14px 16px;
+            backdrop-filter: blur(20px); font-size: 11px; line-height: 1.8;
+            color: var(--muted);
+        }
+        #guide strong { color: var(--text); font-weight: 700; display: block; margin-bottom: 6px; font-size: 10px; letter-spacing: 0.2em; }
+
+        /* ── LOADING ── */
         #loading {
-            position:absolute; inset:0; background:var(--bg); z-index:999;
-            display:flex; flex-direction:column; align-items:center; justify-content:center;
+            position: absolute; inset: 0; background: var(--bg); z-index: 999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
         }
+        #loading h1 { font-size: 22px; font-weight: 700; letter-spacing: 0.45em; color: #fff; }
+        #load-status { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+        .loader-bar { width: 180px; height: 2px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
+        .loader-fill { height: 100%; width: 0; background: var(--accent); border-radius: 2px; transition: width 0.4s; }
     </style>
 </head>
 <body>
 <div id="app">
+
     <div id="loading">
-        <h1 style="letter-spacing:0.5em">AIR CANVAS</h1>
-        <p id="load-status" style="font-family:monospace; margin-top:20px; color:gray">INITIALIZING ENGINE...</p>
+        <h1>AIR CANVAS</h1>
+        <div class="loader-bar"><div class="loader-fill" id="loader-fill"></div></div>
+        <div id="load-status">LOADING HAND MODEL…</div>
     </div>
 
     <video id="webcam" autoplay playsinline></video>
-    <canvas id="output_canvas"></canvas>
-    <div id="cursor-ring"></div>
+    <canvas id="view-canvas"></canvas>
+    <div id="ring-right" class="cursor-ring"></div>
+    <div id="ring-left"  class="cursor-ring"></div>
 
-    <div id="topbar">
-        <div class="fps-chip" id="fps-chip">-- FPS</div>
-        <div class="fps-chip" style="color:var(--accent3)">V-DIST GESTURES ACTIVE</div>
+    <div id="mode-badge" class="idle">IDLE</div>
+
+    <div id="guide">
+        <strong>// RIGHT HAND</strong>
+        ☝️ Index only → Draw<br>
+        🖐 Open (4+) → Erase<br>
+        ✊ Fist → Lift pen<br>
+        <strong style="margin-top:8px;display:block">// LEFT HAND</strong>
+        🤏 Pinch → Resize brush
     </div>
 
-    <div id="panel-tab" onclick="togglePanel()">☰</div>
+    <div id="toolbar">
+        <!-- Colors -->
+        <div class="swatch active" style="background:#5bffb8" data-color="#5bffb8" data-name="MINT" title="Mint"></div>
+        <div class="swatch"       style="background:#5bc8ff" data-color="#5bc8ff" data-name="CYAN" title="Cyan"></div>
+        <div class="swatch"       style="background:#ff5bdb" data-color="#ff5bdb" data-name="PINK" title="Pink"></div>
+        <div class="swatch"       style="background:#fff"    data-color="#ffffff" data-name="WHITE" title="White"></div>
 
-    <div id="panel">
-        <div class="logo">
-            <div class="logo-title">STUDIO PRO</div>
-            <div class="logo-line"></div>
+        <div class="divider"></div>
+
+        <!-- Size -->
+        <div class="size-wrap">
+            <input type="range" id="size-slider" min="4" max="60" value="14">
+            <span class="size-label" id="size-label">14px</span>
         </div>
 
-        <div>
-            <div class="sec-label">Brush</div>
-            <div class="status-grid">
-                <div class="status-card">
-                    <div class="label">COLOR</div>
-                    <div class="value" id="cur-color">Mint</div>
-                </div>
-                <div class="status-card">
-                    <div class="label">SIZE</div>
-                    <div class="value" id="cur-thick-label">15px</div>
-                </div>
-            </div>
-        </div>
+        <div class="divider"></div>
 
-        <div>
-            <div class="sec-label">Palette</div>
-            <div class="color-row">
-                <div class="color-swatch active" data-color="#4fffb0" data-name="Mint" style="background:#4fffb0"></div>
-                <div class="color-swatch" data-color="#4fd8ff" data-name="Cyan" style="background:#4fd8ff"></div>
-                <div class="color-swatch" data-color="#ff4fd8" data-name="Pink" style="background:#ff4fd8"></div>
-            </div>
-        </div>
-
-        <div class="gesture-list">
-            <div class="sec-label">Gestures</div>
-            <div class="gesture-item">☝️ Index Only = Draw</div>
-            <div class="gesture-item">🖐️ 3 Fingers = Pan/Move</div>
-            <div class="gesture-item">✋ 5 Fingers = Eraser</div>
-            <div class="gesture-item">🤏 Pinch Left = Resize</div>
-            <div class="gesture-item">🤖 Hover Button = Click</div>
-        </div>
-
-        <div class="btn-row">
-            <button class="btn" id="clearBtn" onclick="clearCanvas()">CLEAR</button>
-            <button class="btn" id="exportBtn" onclick="exportPNG()">EXPORT</button>
-        </div>
+        <button class="tb-btn" onclick="clearCanvas()">CLEAR</button>
+        <button class="tb-btn" onclick="exportPNG()">SAVE</button>
     </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
 <script>
-// ─────────────────────────────────────────────
-//  CORE STATE
-// ─────────────────────────────────────────────
-const video = document.getElementById('webcam');
-const canvas = document.getElementById('output_canvas');
-const ctx = canvas.getContext('2d');
-const cursorRing = document.getElementById('cursor-ring');
+// ── ELEMENTS ──────────────────────────────────────────────────────────────
+const video      = document.getElementById('webcam');
+const viewCanvas = document.getElementById('view-canvas');
+const vCtx       = viewCanvas.getContext('2d');
+const ringRight  = document.getElementById('ring-right');
+const ringLeft   = document.getElementById('ring-left');
+const badge      = document.getElementById('mode-badge');
+const sizeSlider = document.getElementById('size-slider');
+const sizeLabel  = document.getElementById('size-label');
+
+// Off-screen drawing canvas — persists across frames
 const drawCanvas = document.createElement('canvas');
-const drawCtx = drawCanvas.getContext('2d');
+const dCtx       = drawCanvas.getContext('2d');
 
-let drawColor = '#4fffb0';
-let brushThickness = 15;
-let prevX = null, prevY = null;
-let prevMidX = null, prevMidY = null;
-let panelOpen = true;
-let isMirrored = true;
+// ── STATE ─────────────────────────────────────────────────────────────────
+let drawColor = '#5bffb8';
+let brushSize = 14;
 
-// ── NEW: FILTERS & AIR UI STATE ──
-let smoothX = 0, smoothY = 0;
-const EMA_ALPHA = 0.3; // Smoothing factor
-let hoverTarget = null;
-let hoverStartTime = 0;
-const HOVER_DURATION = 1000; 
+// Per-hand smoothed positions (EMA)
+const smooth = { right: { x: 0, y: 0 }, left: { x: 0, y: 0 } };
+const ALPHA = 0.28; // lower = smoother but laggier
 
-// ── NEW: PANNING STATE ──
-let offsetX = 0, offsetY = 0;
-let isPanning = false;
-let startPanX = 0, startPanY = 0;
+// Drawing continuity — only for right hand
+let prevX = null, prevY = null, prevMidX = null, prevMidY = null;
 
-// ─────────────────────────────────────────────
-//  LOGIC: VECTORS & MATH
-// ─────────────────────────────────────────────
-function getDist(p1, p2) {
-    return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+// ── HELPERS ───────────────────────────────────────────────────────────────
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+function fingersExtended(lm) {
+    const wrist = lm[0];
+    return {
+        index:  dist(lm[8],  wrist) > dist(lm[6],  wrist) * 1.12,
+        middle: dist(lm[12], wrist) > dist(lm[10], wrist) * 1.12,
+        ring:   dist(lm[16], wrist) > dist(lm[14], wrist) * 1.12,
+        pinky:  dist(lm[20], wrist) > dist(lm[18], wrist) * 1.12,
+    };
 }
 
-function togglePanel() {
-    panelOpen = !panelOpen;
-    document.getElementById('panel').classList.toggle('collapsed', !panelOpen);
+function placeRing(el, sx, sy, W, H, mode) {
+    el.style.left = (sx / W * 100) + 'vw';
+    el.style.top  = (sy / H * 100) + 'vh';
+    el.classList.add('visible');
+    el.classList.toggle('erase', mode === 'erase');
 }
 
-// ─────────────────────────────────────────────
-//  MEDIAPIPE HANDLER
-// ─────────────────────────────────────────────
+function hideRing(el) {
+    el.classList.remove('visible', 'erase');
+}
+
+// ── RIGHT HAND: DRAW / ERASE ───────────────────────────────────────────────
+function processRightHand(lm, W, H) {
+    // Mirror x to match mirrored video
+    const m = lm.map(p => ({ x: 1 - p.x, y: p.y }));
+    const f = fingersExtended(m);
+    const extCount = [f.index, f.middle, f.ring, f.pinky].filter(Boolean).length;
+
+    const rawX = m[8].x * W;
+    const rawY = m[8].y * H;
+    smooth.right.x = rawX * ALPHA + smooth.right.x * (1 - ALPHA);
+    smooth.right.y = rawY * ALPHA + smooth.right.y * (1 - ALPHA);
+    const sx = smooth.right.x, sy = smooth.right.y;
+
+    if (extCount >= 4) {
+        // ── OPEN HAND → ERASE ─────────────────────────────────────────
+        placeRing(ringRight, sx, sy, W, H, 'erase');
+        setMode('erase');
+        dCtx.globalCompositeOperation = 'destination-out';
+        dCtx.beginPath();
+        dCtx.arc(sx, sy, 38, 0, Math.PI * 2);
+        dCtx.fill();
+        prevX = null; prevY = null; prevMidX = null; prevMidY = null;
+
+    } else if (f.index && !f.middle) {
+        // ── INDEX ONLY → DRAW ─────────────────────────────────────────
+        placeRing(ringRight, sx, sy, W, H, 'draw');
+        setMode('draw');
+        dCtx.globalCompositeOperation = 'source-over';
+        dCtx.strokeStyle = drawColor;
+        dCtx.lineWidth   = brushSize;
+        dCtx.lineCap     = 'round';
+        dCtx.lineJoin    = 'round';
+
+        if (prevX !== null) {
+            const mx = (prevX + sx) / 2;
+            const my = (prevY + sy) / 2;
+            dCtx.beginPath();
+            if (prevMidX !== null) {
+                dCtx.moveTo(prevMidX, prevMidY);
+                dCtx.quadraticCurveTo(prevX, prevY, mx, my);
+            } else {
+                dCtx.moveTo(prevX, prevY);
+                dCtx.lineTo(mx, my);
+            }
+            dCtx.stroke();
+            prevMidX = mx; prevMidY = my;
+        }
+        prevX = sx; prevY = sy;
+
+    } else {
+        // ── FIST / ANYTHING ELSE → IDLE ───────────────────────────────
+        placeRing(ringRight, sx, sy, W, H, 'idle');
+        setMode('idle');
+        prevX = null; prevY = null; prevMidX = null; prevMidY = null;
+    }
+}
+
+// ── LEFT HAND: PINCH TO RESIZE BRUSH ──────────────────────────────────────
+function processLeftHand(lm, W, H) {
+    const m = lm.map(p => ({ x: 1 - p.x, y: p.y }));
+
+    // Track left hand cursor at index tip
+    const rawX = m[8].x * W;
+    const rawY = m[8].y * H;
+    smooth.left.x = rawX * ALPHA + smooth.left.x * (1 - ALPHA);
+    smooth.left.y = rawY * ALPHA + smooth.left.y * (1 - ALPHA);
+    placeRing(ringLeft, smooth.left.x, smooth.left.y, W, H, 'left');
+
+    // Pinch distance (thumb tip ↔ index tip) → brush size
+    const pinchDist = dist(m[4], m[8]);
+    // Map ~0.02 (fully pinched) to ~0.25 (wide open) → 4px–60px
+    const newSize = Math.round(Math.max(4, Math.min(60, pinchDist * 280)));
+    brushSize = newSize;
+    sizeSlider.value = newSize;
+    sizeLabel.textContent = newSize + 'px';
+}
+
+// ── MAIN RESULTS HANDLER ──────────────────────────────────────────────────
 function onResults(results) {
-    if (canvas.width !== video.videoWidth) {
-        canvas.width = drawCanvas.width = video.videoWidth || 1280;
-        canvas.height = drawCanvas.height = video.videoHeight || 720;
+    const W = video.videoWidth  || 1280;
+    const H = video.videoHeight || 720;
+
+    if (viewCanvas.width !== W) {
+        viewCanvas.width = drawCanvas.width = W;
+        viewCanvas.height = drawCanvas.height = H;
     }
 
-    ctx.save();
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Video Layer
-    ctx.save();
-    if (isMirrored) { ctx.translate(canvas.width, 0); ctx.scale(-1, 1); }
-    ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
-    ctx.restore();
+    // 1. Mirrored webcam feed
+    vCtx.save();
+    vCtx.clearRect(0, 0, W, H);
+    vCtx.translate(W, 0);
+    vCtx.scale(-1, 1);
+    vCtx.drawImage(results.image, 0, 0, W, H);
+    vCtx.restore();
 
-    ctx.fillStyle = 'rgba(0,0,0,0.1)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    vCtx.fillStyle = 'rgba(0,0,0,0.12)';
+    vCtx.fillRect(0, 0, W, H);
 
-    if (results.multiHandLandmarks) {
-        results.multiHandLandmarks.forEach((rawLm, index) => {
-            const label = results.multiHandedness[index].label;
-            const isRightHand = isMirrored ? label === 'Left' : label === 'Right';
-            const landmarks = rawLm.map(lm => ({ x: isMirrored ? 1 - lm.x : lm.x, y: lm.y }));
+    // 2. Per-hand processing
+    // MediaPipe reports label from its own (unmirrored) perspective:
+    //   label "Right" in the feed = the person's LEFT hand (because mirror)
+    //   label "Left"  in the feed = the person's RIGHT hand
+    // So we flip: label "Left" → drawing hand, label "Right" → resize hand.
+    let sawRight = false, sawLeft = false;
 
-            const wrist = landmarks[0];
-            const indexTip = landmarks[8];
-            const thumbTip = landmarks[4];
-            const middleTip = landmarks[12];
-            const ringTip = landmarks[16];
-
-            // 1. EMA SMOOTHING
-            const targetX = indexTip.x * canvas.width;
-            const targetY = indexTip.y * canvas.height;
-            smoothX = (targetX * EMA_ALPHA) + (smoothX * (1 - EMA_ALPHA));
-            smoothY = (targetY * EMA_ALPHA) + (smoothY * (1 - EMA_ALPHA));
-
-            if (isRightHand) {
-                // Update Cursor UI
-                const effectiveLeft = panelOpen ? 280 : 0;
-                const screenX = effectiveLeft + (smoothX / canvas.width) * (window.innerWidth - effectiveLeft);
-                const screenY = (smoothY / canvas.height) * window.innerHeight;
-                cursorRing.style.left = screenX + 'px';
-                cursorRing.style.top = screenY + 'px';
-
-                // 2. VECTOR GESTURE DETECTION
-                const indexExt = getDist(indexTip, wrist) > getDist(landmarks[6], wrist) * 1.15;
-                const midExt = getDist(middleTip, wrist) > getDist(landmarks[10], wrist) * 1.15;
-                const ringExt = getDist(ringTip, wrist) > getDist(landmarks[14], wrist) * 1.15;
-                const thumbExt = getDist(thumbTip, wrist) > getDist(landmarks[2], wrist) * 1.1;
-                const pinkyExt = getDist(landmarks[20], wrist) > getDist(landmarks[18], wrist) * 1.1;
-
-                // 3. AIR UI HOVER
-                handleAirUI(smoothX, smoothY);
-
-                // --- PAN/MOVE LOGIC (3 Fingers) ---
-                if (indexExt && midExt && ringExt && !pinkyExt) {
-                    cursorRing.style.borderColor = "#ffdd4f"; // Yellow for move
-                    if (!isPanning) {
-                        isPanning = true;
-                        startPanX = smoothX - offsetX;
-                        startPanY = smoothY - offsetY;
-                    }
-                    offsetX = smoothX - startPanX;
-                    offsetY = smoothY - startPanY;
-                    prevX = null; prevY = null;
-                } 
-                else if (indexExt && midExt && ringExt && pinkyExt) {
-                    // ERASER MODE (All fingers out)
-                    isPanning = false;
-                    cursorRing.style.borderColor = "#ff4fd8";
-                    drawCtx.globalCompositeOperation = 'destination-out';
-                    drawCtx.beginPath();
-                    // Adjusted for current offset
-                    drawCtx.arc(smoothX - offsetX, smoothY - offsetY, 40, 0, Math.PI * 2);
-                    drawCtx.fill();
-                    prevX = null; prevY = null;
-                } 
-                else if (indexExt && !midExt) {
-                    // DRAW MODE
-                    isPanning = false;
-                    cursorRing.style.borderColor = drawColor;
-                    drawCtx.globalCompositeOperation = 'source-over';
-                    
-                    // 4. VELOCITY BASED THICKNESS
-                    let velocity = prevX ? Math.hypot((smoothX - offsetX) - prevX, (smoothY - offsetY) - prevY) : 0;
-                    let vAdjust = Math.max(0.4, 1.2 - (velocity / 50));
-                    let dynamicThick = brushThickness * vAdjust;
-
-                    // Coordinates adjusted for canvas movement
-                    const adjX = smoothX - offsetX;
-                    const adjY = smoothY - offsetY;
-
-                    if (prevX !== null) {
-                        const mx = (prevX + adjX) / 2;
-                        const my = (prevY + adjY) / 2;
-                        drawCtx.strokeStyle = drawColor;
-                        drawCtx.lineWidth = dynamicThick;
-                        drawCtx.lineCap = 'round';
-                        drawCtx.beginPath();
-                        if (prevMidX !== null) {
-                            drawCtx.moveTo(prevMidX, prevMidY);
-                            drawCtx.quadraticCurveTo(prevX, prevY, mx, my);
-                        } else {
-                            drawCtx.moveTo(prevX, prevY);
-                            drawCtx.lineTo(adjX, adjY);
-                        }
-                        drawCtx.stroke();
-                        prevMidX = mx; prevMidY = my;
-                    }
-                    prevX = adjX; prevY = adjY;
-                } else {
-                    prevX = null; prevY = null; prevMidX = null; prevMidY = null;
-                    isPanning = false;
-                    cursorRing.style.borderColor = drawColor;
-                }
-            } else {
-                // LEFT HAND: PINCH TO RESIZE
-                const pinchDist = getDist(indexTip, thumbTip);
-                brushThickness = Math.max(5, Math.min(80, pinchDist * 400));
-                document.getElementById('cur-thick-label').textContent = Math.round(brushThickness) + "px";
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        results.multiHandLandmarks.forEach((rawLm, i) => {
+            const label = results.multiHandedness[i]?.label; // "Left" or "Right" from MP
+            // Because the video is mirrored, MP's "Left" = user's right hand (drawing)
+            if (label === 'Left') {
+                sawRight = true;
+                processRightHand(rawLm, W, H);
+            } else if (label === 'Right') {
+                sawLeft = true;
+                processLeftHand(rawLm, W, H);
             }
         });
-    } else {
-        prevX = null; prevY = null;
-        isPanning = false;
     }
 
-    // --- APPLY PANNING OFFSET TO VIEW ---
-    ctx.save();
-    ctx.translate(offsetX, offsetY);
-    ctx.drawImage(drawCanvas, 0, 0);
-    ctx.restore();
+    if (!sawRight) {
+        hideRing(ringRight);
+        setMode('idle');
+        prevX = null; prevY = null; prevMidX = null; prevMidY = null;
+    }
+    if (!sawLeft) {
+        hideRing(ringLeft);
+    }
 
-    ctx.restore();
+    // 3. Composite drawing layer
+    vCtx.drawImage(drawCanvas, 0, 0);
 }
 
-// ─────────────────────────────────────────────
-//  AIR UI: HOVER TO CLICK
-// ─────────────────────────────────────────────
-function handleAirUI(x, y) {
-    const clearBtn = document.getElementById('clearBtn');
-    const exportBtn = document.getElementById('exportBtn');
-    
-    const targets = [
-        { el: clearBtn, action: clearCanvas, id: 'clear' },
-        { el: exportBtn, action: exportPNG, id: 'export' }
-    ];
-
-    let found = false;
-    targets.forEach(t => {
-        const rect = t.el.getBoundingClientRect();
-        const effectiveLeft = panelOpen ? 280 : 0;
-        const screenX = effectiveLeft + (x / canvas.width) * (window.innerWidth - effectiveLeft);
-        const screenY = (y / canvas.height) * window.innerHeight;
-
-        if (screenX > rect.left && screenX < rect.right && screenY > rect.top && screenY < rect.bottom) {
-            found = true;
-            t.el.classList.add('hovering');
-            if (hoverTarget !== t.id) {
-                hoverTarget = t.id;
-                hoverStartTime = Date.now();
-            } else {
-                const progress = (Date.now() - hoverStartTime) / HOVER_DURATION;
-                drawHoverCircle(x, y, progress);
-                if (progress >= 1) {
-                    t.action();
-                    hoverTarget = null;
-                }
-            }
-        } else {
-            t.el.classList.remove('hovering');
-        }
-    });
-
-    if (!found) hoverTarget = null;
+// ── MODE BADGE ────────────────────────────────────────────────────────────
+function setMode(mode) {
+    badge.className = mode;
+    badge.textContent = mode === 'draw'  ? '✏  DRAWING'
+                      : mode === 'erase' ? '◌  ERASING'
+                      : '—  IDLE';
+    // Tint ring to current draw color when drawing
+    if (mode === 'draw') ringRight.style.borderColor = drawColor;
+    else if (mode === 'erase') ringRight.style.borderColor = '';
 }
 
-function drawHoverCircle(x, y, p) {
-    ctx.beginPath();
-    ctx.arc(x, y, 40, 0, Math.PI * 2 * p);
-    ctx.strokeStyle = '#4fffb0';
-    ctx.lineWidth = 5;
-    ctx.stroke();
-}
-
-// ─────────────────────────────────────────────
-//  SYSTEM ACTIONS
-// ─────────────────────────────────────────────
+// ── ACTIONS ───────────────────────────────────────────────────────────────
 function clearCanvas() {
-    drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
-    // Reset offset on clear
-    offsetX = 0;
-    offsetY = 0;
+    dCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
 }
 
 function exportPNG() {
-    // We create a temporary canvas to export the drawing as it currently looks (with offset)
-    const exportCanvas = document.createElement('canvas');
-    exportCanvas.width = canvas.width;
-    exportCanvas.height = canvas.height;
-    const expCtx = exportCanvas.getContext('2d');
-    expCtx.translate(offsetX, offsetY);
-    expCtx.drawImage(drawCanvas, 0, 0);
-
-    const link = document.createElement('a');
-    link.download = 'air-canvas-export.png';
-    link.href = exportCanvas.toDataURL();
-    link.click();
+    const exp = document.createElement('canvas');
+    exp.width  = drawCanvas.width  || 1280;
+    exp.height = drawCanvas.height || 720;
+    const ec = exp.getContext('2d');
+    ec.fillStyle = '#06080d';
+    ec.fillRect(0, 0, exp.width, exp.height);
+    ec.drawImage(drawCanvas, 0, 0);
+    const a = document.createElement('a');
+    a.download = 'air-canvas.png';
+    a.href = exp.toDataURL('image/png');
+    a.click();
 }
 
-// ─────────────────────────────────────────────
-//  INIT
-// ─────────────────────────────────────────────
-const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
-hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.8, minTrackingConfidence: 0.8 });
+// ── COLOR SWATCHES ────────────────────────────────────────────────────────
+document.querySelectorAll('.swatch').forEach(s => {
+    s.addEventListener('click', () => {
+        drawColor = s.dataset.color;
+        ringRight.style.borderColor = drawColor;
+        document.querySelectorAll('.swatch').forEach(x => x.classList.remove('active'));
+        s.classList.add('active');
+    });
+});
+
+// ── SIZE SLIDER ───────────────────────────────────────────────────────────
+sizeSlider.addEventListener('input', () => {
+    brushSize = parseInt(sizeSlider.value, 10);
+    sizeLabel.textContent = brushSize + 'px';
+});
+
+// ── MEDIAPIPE INIT ────────────────────────────────────────────────────────
+const loaderFill = document.getElementById('loader-fill');
+const loadStatus = document.getElementById('load-status');
+loaderFill.style.width = '30%';
+
+const hands = new Hands({
+    locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
+});
+hands.setOptions({
+    maxNumHands: 2,           // FIX: was 1 — now detects both hands
+    modelComplexity: 1,
+    minDetectionConfidence: 0.75,
+    minTrackingConfidence: 0.75
+});
 hands.onResults(onResults);
 
-const camera = new Camera(video, {
-    onFrame: async () => { await hands.send({ image: video }); },
+loaderFill.style.width = '65%';
+loadStatus.textContent = 'STARTING CAMERA…';
+
+const cam = new Camera(video, {
+    onFrame: async () => {
+        try { await hands.send({ image: video }); }
+        catch(e) { /* skip bad frames */ }
+    },
     width: 1280, height: 720
 });
-camera.start().then(() => {
-    document.getElementById('loading').style.display = 'none';
-});
 
-document.querySelectorAll('.color-swatch').forEach(s => {
-    s.onclick = () => {
-        drawColor = s.dataset.color;
-        document.getElementById('cur-color').textContent = s.dataset.name;
-        document.querySelectorAll('.color-swatch').forEach(sw => sw.classList.remove('active'));
-        s.classList.add('active');
-        cursorRing.style.borderColor = drawColor;
-    }
+cam.start().then(() => {
+    loaderFill.style.width = '100%';
+    loadStatus.textContent = 'READY';
+    setTimeout(() => { document.getElementById('loading').style.display = 'none'; }, 400);
+}).catch(err => {
+    loadStatus.textContent = 'CAMERA ERROR: ' + (err.message || err);
+    loaderFill.style.background = '#ff5b5b';
 });
 </script>
 </body>
