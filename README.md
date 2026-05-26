@@ -1,3 +1,5 @@
+<div align="center">
+     
 # ✋ Air Canvas — Gesture Drawing Studio
 
 [![MediaPipe](https://img.shields.io/badge/MediaPipe-Hands-00C853?style=for-the-badge&logo=google&logoColor=white)](https://developers.google.com/mediapipe)
