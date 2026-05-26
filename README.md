@@ -6,6 +6,9 @@
 [![Platform](https://img.shields.io/badge/Platform-Chrome%20%7C%20Edge%20%7C%20Brave-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://www.google.com/chrome/)
 [![No Dependencies](https://img.shields.io/badge/Dependencies-Zero-brightgreen?style=for-the-badge)](https://github.com/ayuuXploits/air-canvas)
 
+[**🚀 Live Demo**](https://ayuuXploits.github.io/air-canvas/) &nbsp;·&nbsp; [**🐛 Report Bug**](https://github.com/ayuuXploits/artscii-cam/issues/new?assignees=&labels=bug&template=bug_report.md&title=%5BBug%5D+) [**✨ Request Feature**](https://github.com/ayuuXploits/artscii-cam/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=%5BFeature%5D+)
+
+
 > Draw in the air using just your hands. No touch, no mouse — pure computer vision.
 
 ![Main Header](./docs/air_canvas2.png)
