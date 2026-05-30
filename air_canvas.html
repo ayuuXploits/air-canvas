@@ -1295,26 +1295,7 @@ function onResults(results) {
                     // Always track live position as the preview end
                     // (even between gesture frames so preview is smooth)
                     shapePreviewX = x;
-                    shapePreviewY = y;
-
-                    if (shapeState === 'idle') {
-                        // Show "ready" dot at cursor
-                        ctx.beginPath(); ctx.arc(x,y,8,0,Math.PI*2);
-                        ctx.fillStyle='rgba(79,216,255,0.15)'; ctx.fill();
-                        ctx.strokeStyle='#4fd8ff'; ctx.lineWidth=2; ctx.stroke();
-                        // Tap index-only to place start point
-                        if (ci && !c2) {
-                            shapeStartX = x; shapeStartY = y;
-                            shapeState  = 'drawing';
-                            showToast('Start set — move finger to size, then ✌️ to commit');
-                        }
-
-                    } else if (shapeState === 'drawing') {
-                        // COMMIT: two fingers (index + middle)
-                        if (c2) {
-                            saveSnapshot();
-                            objects.push({
-                                type:'shape', shapeType, color:drawColor, thickness:brushThickness,
+                    shrushThickness,
                                 x1:shapeStartX, y1:shapeStartY,
                                 x2:shapePreviewX, y2:shapePreviewY,
                                 offsetX:0, offsetY:0
