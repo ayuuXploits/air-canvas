@@ -14,7 +14,7 @@
 > Draw in the air using just your hands. No touch, no mouse — pure computer vision.
 
 ![Main Header](./docs/air_canvas2.png)
-![Main Header](./docs/air_canvas1.png)
+![Main Header](./docs/aircanvas1.png)
 
 </div>
 
