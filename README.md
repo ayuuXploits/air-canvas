@@ -196,6 +196,7 @@ npx live-server --port=8080
 
 ```bash
 curl -L https://raw.githubusercontent.com/ayuuXploits/air-canvas/main/air_canvas.html -o air_canvas.html
+
 ```
 
 ---
