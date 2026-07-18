@@ -277,6 +277,7 @@ Contributions, issues, and feature requests are welcome!
 ## 📄 License
 
 ```
+
 Copyright (c) 2026 ayuuXploits
 All Rights Reserved.
 
