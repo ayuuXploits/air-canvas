@@ -149,6 +149,7 @@ Just double-click `air_canvas.html` or drag it into any Chromium-based browser.
 ### Option 2 — Clone from GitHub
 
 ```bash
+
 git clone https://github.com/ayuuXploits/air_canvas.html.git
 cd air-canvas
 
