@@ -166,6 +166,7 @@ start air_canvas.html       # Windows
 ### Option 3 — Serve locally with Python (recommended for best performance)
 
 ```bash
+
 python3 -m http.server 8080
 
 ```
