@@ -136,7 +136,7 @@ This lets you reposition objects without ever leaving Freehand or Shape mode.
 
 ---
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Option 1 — Open directly in browser
 
