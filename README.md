@@ -48,7 +48,7 @@ One `.html` file. No install. No frameworks. Just open and draw.
 ## ✨ Features
 
 | Feature | Description |
-|---|---|
+|---|----------|
 | ✏️ Freehand Drawing | Point your right index finger to draw smooth quadratic-curve strokes |
 | 🔲 Shape Mode | 9 shapes — line, rect, circle, triangle, arrow, star, pentagon, heart, diamond — with live dashed preview and two-gesture commit |
 | ✋ Move Mode | Grab any stroke or shape with a closed fist and drag it anywhere on the canvas |
