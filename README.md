@@ -73,7 +73,7 @@ One `.html` file. No install. No frameworks. Just open and draw.
 ### Right Hand — Drawing & Interaction
 
 | Gesture | Action |
-|---|---|
+|----------|--------------|
 | ☝️ Index finger only | Draw stroke (Freehand) / Set shape start point (Shape) |
 | ✌️ 2 fingers up | Commit shape (Shape mode) / Lift pen (Freehand) |
 | 🤏 Pinch thumb + index | Grab & drag any object — works in all modes |
